@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Basti's Platinum Wash - Admin Portal</title>
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Sentry CDN Script -->
+    <script src="https://browser.sentry-cdn.com/7.112.2/bundle.min.js" crossorigin="anonymous"></script>
+    <!-- Supabase CDN Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase Configuration -->
+    <script src="supabase-config.js"></script>
+</head>
+
+<body>
+    <div id="login-container">
+        <input type="email" id="admin-email" placeholder="Admin Email">
+        <input type="password" id="admin-password" placeholder="Password">
+        <button id="login-btn">Secure Login</button>
+    </div>
+
+    <div id="dashboard-container" style="display: none;">
+        <header id="admin-navbar">
+            <span class="nav-brand">Basti's Admin</span>
+            <div class="nav-actions">
+                <div id="notification-icon"
+                    style="position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
+                    <!-- Bell SVG Icon -->
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-primary);">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <!-- Notification Counter Badge -->
+                    <span id="notification-badge"
+                        style="display: none; position: absolute; top: 2px; right: 2px; background-color: #ef4444; color: #ffffff; font-size: 0.65rem; font-weight: 700; padding: 2px 5px; border-radius: 50%; min-width: 16px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.4);">0</span>
+                </div>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </header>
+        <nav id="tab-navigation"
+            style="display: flex; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; background: rgba(10, 10, 10, 0.9); border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 0.5rem 1rem; gap: 0.5rem;">
+            <button class="tab-btn active" data-target="view-pending"
+                style="min-height: 44px; padding: 0.5rem 1rem; border: none; border-radius: 8px; background: rgba(255, 255, 255, 0.1); color: #fff; font-weight: 600; cursor: pointer;">Pending</button>
+            <button class="tab-btn" data-target="view-confirmed"
+                style="min-height: 44px; padding: 0.5rem 1rem; border: none; border-radius: 8px; background: transparent; color: #a3a3ac; font-weight: 600; cursor: pointer;">Confirmed</button>
+            <button class="tab-btn" data-target="view-schedule"
+                style="min-height: 44px; padding: 0.5rem 1rem; border: none; border-radius: 8px; background: transparent; color: #a3a3ac; font-weight: 600; cursor: pointer;">My
+                Schedule</button>
+            <button class="tab-btn" data-target="view-completed"
+                style="min-height: 44px; padding: 0.5rem 1rem; border: none; border-radius: 8px; background: transparent; color: #a3a3ac; font-weight: 600; cursor: pointer;">Completed</button>
+            <button class="tab-btn" data-target="view-cancelled"
+                style="min-height: 44px; padding: 0.5rem 1rem; border: none; border-radius: 8px; background: transparent; color: #a3a3ac; font-weight: 600; cursor: pointer;">Cancelled</button>
+        </nav>
+        <div id="tab-content-container" style="padding: 1.25rem 1rem;">
+            <section id="view-pending" class="tab-content active" style="display: block;">
+                <div class="tab-header">
+                    <h2 id="pending-heading">Pending Confirmation</h2>
+                </div>
+            </section>
+            <section id="view-confirmed" class="tab-content" style="display: none;">
+                <h2>Confirmed Bookings View</h2>
+            </section>
+            <section id="view-schedule" class="tab-content" style="display: none;">
+                <div class="calendar-controls"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 id="calendar-month-year"
+                        style="margin: 0; font-size: 1.5rem; font-weight: 700; color: #ffffff;"></h2>
+                    <div class="calendar-nav" style="display: flex; gap: 0.5rem;">
+                        <button id="prev-month"
+                            style="min-height: 38px; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; font-weight: 600; cursor: pointer; transition: all 0.2s;">Prev</button>
+                        <button id="next-month"
+                            style="min-height: 38px; padding: 0.5rem 1rem; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; background: rgba(255,255,255,0.05); color: #fff; font-weight: 600; cursor: pointer; transition: all 0.2s;">Next</button>
+                    </div>
+                </div>
+                <div class="calendar-weekdays"
+                    style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: bold; color: #a3a3ac; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; font-size: 0.9rem;">
+                    <div>Sun</div>
+                    <div>Mon</div>
+                    <div>Tue</div>
+                    <div>Wed</div>
+                    <div>Thu</div>
+                    <div>Fri</div>
+                    <div>Sat</div>
+                </div>
+                <div id="calendar-grid"
+                    style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px;"></div>
+            </section>
+            <section id="view-completed" class="tab-content" style="display: none;">
+                <h2>Completed Bookings View</h2>
+                <div id="completed-cards-container"></div>
+                <button id="load-more-completed"
+                    style="width: 100%; padding: 12px; margin-top: 1rem; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #a3a3ac; cursor: pointer;">Load
+                    More Historical Data</button>
+            </section>
+            <section id="view-cancelled" class="tab-content" style="display: none;">
+                <h2>Cancelled Bookings View</h2>
+                <div id="cancelled-cards-container"></div>
+                <button id="load-more-cancelled"
+                    style="width: 100%; padding: 12px; margin-top: 1rem; border-radius: 8px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: #a3a3ac; cursor: pointer;">Load
+                    More Historical Data</button>
+            </section>
+        </div>
+    </div>
+
+    <!-- Propose Time Booking Modal (PTBM) -->
+    <div id="ptbm-overlay" class="modal-overlay hidden">
+        <div class="modal-container">
+            <button id="ptbm-btn-close" class="btn-close">&times;</button>
+            <div class="modal-header">
+                <h2 class="modal-title">Propose New Time</h2>
+                <p class="modal-subtitle">Select a new date and time for this booking.</p>
+            </div>
+            <form id="ptbm-form">
+                <div class="form-group">
+                    <label class="form-label">Select Date</label>
+                    <input type="date" id="ptbm-date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Select Time</label>
+                    <input type="time" id="ptbm-time" class="form-input" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" id="ptbm-btn-submit" class="btn-primary">Send Proposal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+
+</html>

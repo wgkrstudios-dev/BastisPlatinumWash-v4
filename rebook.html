@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Basti's Platinum Car Wash - Secure Rebooking</title>
+    <meta name="theme-color" content="#0a0a0a">
+
+    <!-- Preconnect to Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Supabase Configuration -->
+    <script src="supabase-config.js"></script>
+</head>
+
+<body>
+    <!-- Background overlay details for depth -->
+    <div class="glow-bg"></div>
+
+    <div class="app-container">
+        <!-- Header Section -->
+        <header class="app-header">
+            <div class="logo-container">
+                <img src="assets/BPCW-mainlogo.png" alt="Basti's Platinum Car Wash Logo" class="main-logo">
+            </div>
+            <h1 class="hero-title">PREMIUM CARE. AT YOUR DOORSTEP. EVERY TIME.</h1>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="rebook-main-content">
+            <form id="rebook-form" style="display: none;">
+                <!-- Full Name -->
+                <div class="form-group">
+                    <label for="rebook-name" class="form-label">Full Name</label>
+                    <input type="text" id="rebook-name" class="form-input" readonly>
+                </div>
+
+                <!-- Phone Number -->
+                <div class="form-group">
+                    <label for="rebook-phone" class="form-label">Phone Number</label>
+                    <input type="tel" id="rebook-phone" class="form-input" readonly>
+                </div>
+
+                <!-- Email Address -->
+                <div class="form-group">
+                    <label for="rebook-email" class="form-label">Email Address</label>
+                    <input type="email" id="rebook-email" class="form-input" readonly>
+                </div>
+
+                <!-- Car Size -->
+                <div class="form-group">
+                    <label for="rebook-car-size" class="form-label">Car Size</label>
+                    <input type="text" id="rebook-car-size" class="form-input" readonly>
+                </div>
+
+                <!-- Preferred Date -->
+                <div class="form-group">
+                    <label for="rebook-date" class="form-label">Preferred Date</label>
+                    <input type="date" id="rebook-date" class="form-input" required>
+                </div>
+
+                <!-- Preferred Time -->
+                <div class="form-group">
+                    <label for="rebook-time" class="form-label">Preferred Time</label>
+                    <input type="time" id="rebook-time" class="form-input" required>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" id="btn-confirm-rebook">
+                        <span>Confirm New Time</span>
+                        <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </main>
+
+        <!-- Error display container -->
+        <div id="error-container"></div>
+    </div>
+
+    <!-- Router Logic -->
+    <script src="rebook.js"></script>
+</body>
+
+</html>

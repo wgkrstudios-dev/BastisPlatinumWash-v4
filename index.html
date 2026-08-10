@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Basti's Platinum Car Wash | Premium Mobile Detailing</title>
+  <meta name="description"
+    content="Experience premium car wash and detailing services at your doorstep. Professional exterior wash, wheel clean, interior vacuuming, and dash cleaning for hatchbacks, sedans, SUVs, and bakkies.">
+  <meta name="theme-color" content="#0a0a0a">
+
+  <!-- Preconnect to Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <!-- Background overlay details for depth -->
+  <div class="glow-bg"></div>
+
+  <div class="app-container">
+
+    <!-- Header Section -->
+    <header class="app-header">
+      <div class="logo-container">
+        <img src="assets/BPCW-mainlogo.png" alt="Basti's Platinum Car Wash Logo" class="main-logo">
+      </div>
+      <h1 class="hero-title">PREMIUM CARE. AT YOUR DOORSTEP. EVERY TIME.</h1>
+    </header>
+
+    <!-- Main Booking Section -->
+    <main class="app-content">
+
+      <!-- Section: Vehicle Selection -->
+      <section class="booking-section">
+        <h2 class="section-title">Select Your Vehicle Type:</h2>
+        <div class="vehicle-grid">
+
+          <!-- Vehicle Option: Hatchback & Sedan -->
+          <label class="vehicle-card" for="vehicle-hatchback">
+            <input type="radio" name="vehicle_type" id="vehicle-hatchback" class="vehicle-radio" checked>
+            <div class="card-content">
+              <div class="vehicle-image-wrapper">
+                <img src="assets/hatchbackandsedan-buttonlogo.png" alt="Hatchback and Sedan" class="vehicle-img">
+              </div>
+              <span class="vehicle-name">Hatchback &amp; Sedan</span>
+              <span class="selection-indicator"></span>
+            </div>
+          </label>
+
+          <!-- Vehicle Option: SUV & Bakkie -->
+          <label class="vehicle-card" for="vehicle-suv">
+            <input type="radio" name="vehicle_type" id="vehicle-suv" class="vehicle-radio">
+            <div class="card-content">
+              <div class="vehicle-image-wrapper">
+                <img src="assets/suvandbakkie-buttonlogo.png" alt="SUV and Bakkie" class="vehicle-img">
+              </div>
+              <span class="vehicle-name">SUV &amp; Bakkie</span>
+              <span class="selection-indicator"></span>
+            </div>
+          </label>
+
+        </div>
+      </section>
+
+      <!-- Section: Included Services -->
+      <section class="booking-section">
+        <h2 class="section-title">Included In Every Platinum Wash:</h2>
+        <div class="services-grid">
+
+          <!-- Service item 1 -->
+          <div class="service-card">
+            <div class="service-icon-wrapper">
+              <img src="assets/serices-exteriorwash-logo.png" alt="Exterior Wash Icon" class="service-icon">
+            </div>
+            <div class="service-info">
+              <h3>Active Foam Exterior Wash</h3>
+              <p>Premium detailed hand wash anddry using clean microfiber towels for a swirl-free finish.
+              </p>
+            </div>
+          </div>
+
+          <!-- Service item 2 -->
+          <div class="service-card">
+            <div class="service-icon-wrapper">
+              <img src="assets/services-wheenandtyreclean-logo.png" alt="Wheel and Tyre Clean Icon"
+                class="service-icon">
+            </div>
+            <div class="service-info">
+              <h3>Wheel &amp; Tyre Treatment</h3>
+              <p>Deep cleaning of rims and tyres, brake dust removal, finished with high-gloss protective dressing.</p>
+            </div>
+          </div>
+
+          <!-- Service item 3 -->
+          <div class="service-card">
+            <div class="service-icon-wrapper">
+              <img src="assets/services-interiorvacuum-logo.png" alt="Interior Vacuum Icon" class="service-icon">
+            </div>
+            <div class="service-info">
+              <h3>Deep Interior Vacuum</h3>
+              <p>Thorough vacuuming of carpets, seats, mats, boot area and narrow crevices to remove all dirt.</p>
+            </div>
+          </div>
+
+          <!-- Service item 4 -->
+          <div class="service-card">
+            <div class="service-icon-wrapper">
+              <img src="assets/services-dashwipe-logo.png" alt="Dash Wipe Icon" class="service-icon">
+            </div>
+            <div class="service-info">
+              <h3>Anti-Static Dash &amp; Trim Wipe</h3>
+              <p>Dusting, cleaning, and sanitizing the dashboard, console, and inner door panels.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Booking CTA Section -->
+      <section class="cta-section">
+        <div class="pricing-display">
+          <span class="price-label">Platinum Package Starting At</span>
+          <div class="price-value-container">
+            <span class="currency">R</span><span class="price-amount" id="price-display-val">100</span>
+          </div>
+        </div>
+        <button type="button" class="btn-primary" id="btn-book-now">
+          <span>Book Your Platinum Wash</span>
+          <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <p class="cta-guarantee">✓ 100% Satisfaction Guarantee.</p>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>&copy; 2026 Basti's Platinum Car Wash. All rights reserved.</p>
+      <p class="developer-tag">Designed by WGKR Studios</p>
+    </footer>
+
+  </div>
+
+  <!-- Toast Notification Overlay (for DOM feedback instead of alerts) -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Booking Modal Overlay -->
+  <div class="modal-overlay hidden" id="booking-modal">
+    <div class="modal-container">
+      <button type="button" class="btn-close" id="btn-close-modal" aria-label="Close modal">&times;</button>
+      
+      <div class="modal-header">
+        <h2 class="modal-title">Complete Your Booking</h2>
+        <p class="modal-subtitle">Provide your detailing deployment coordinates and contact info below.</p>
+      </div>
+
+      <div class="modal-selection-summary">
+        <span class="modal-selection-label">Selected Package:</span>
+        <div class="modal-selection-details">
+          <span class="modal-selection-vehicle" id="modal-vehicle-display">Hatchback &amp; Sedan</span>
+          <span class="modal-selection-price" id="modal-price-display">R100</span>
+        </div>
+      </div>
+
+      <form id="booking-form" autocomplete="on">
+        <!-- Full Name -->
+        <div class="form-group">
+          <label for="customer-name" class="form-label">Full Name</label>
+          <input type="text" id="customer-name" class="form-input" required placeholder="John Doe" autocomplete="name">
+        </div>
+
+        <!-- Phone Number -->
+        <div class="form-group">
+          <label for="customer-phone" class="form-label">Phone Number</label>
+          <input type="tel" id="customer-phone" class="form-input" required placeholder="e.g. 082 123 4567" autocomplete="tel">
+        </div>
+
+        <!-- Email -->
+        <div class="form-group">
+          <label for="customer-email" class="form-label">Email Address</label>
+          <input type="email" id="customer-email" class="form-input" required placeholder="e.g. john@domain.co.za" autocomplete="email">
+        </div>
+
+        <!-- Address -->
+        <div class="form-group">
+          <label for="customer-address" class="form-label">Service Address</label>
+          <input type="text" id="customer-address" class="form-input" required placeholder="e.g. 123 Luxury Lane, Sandton" autocomplete="street-address">
+        </div>
+
+        <!-- Date & Time -->
+        <div class="form-group">
+          <label for="booking-date-time" class="form-label">Preferred Date &amp; Time</label>
+          <input type="datetime-local" id="booking-date-time" class="form-input" required>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn-primary" id="btn-submit-booking">
+            <span>Confirm Booking</span>
+            <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
