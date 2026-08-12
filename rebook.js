@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const { data, error } = await supabase
             .from('bookings')
-            .select('customer_name, customer_email, customer_phone, car_size, status, booking_date, booking_time')
+            .select('customer_name, customer_email, customer_phone, vehicle_type, booking_status, booking_date_time')
             .eq('id', targetBookingId)
             .single();
 
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rebook-name').value = bookingData.customer_name || '';
         document.getElementById('rebook-phone').value = bookingData.customer_phone || '';
         document.getElementById('rebook-email').value = bookingData.customer_email || '';
-        document.getElementById('rebook-car-size').value = bookingData.car_size || '';
+        document.getElementById('rebook-car-size').value = bookingData.vehicle_type || '';
 
         // Reveal the prefilled form by removing the inline display: none style
         const rebookForm = document.getElementById('rebook-form');
@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             rebookForm.style.display = 'block';
         }
     } catch (err) {
+        Sentry.captureException(err);
         // Fail silently to protect database architecture schema from malicious probing
         const errorContainer = document.getElementById('error-container');
         if (errorContainer) {
@@ -138,16 +139,17 @@ document.getElementById('rebook-date')?.addEventListener('change', async (event)
     try {
         const { data, error } = await supabase
             .from('bookings')
-            .select('booking_time')
-            .eq('booking_date', selectedDate)
-            .eq('status', 'confirmed');
+            .select('booking_date_time')
+            .like('booking_date_time', `${selectedDate}%`)
+            .eq('booking_status', 'confirmed');
 
         if (error) throw error;
 
         if (data) {
             data.forEach(booking => {
-                if (booking.booking_time) {
-                    const timeHHMM = booking.booking_time.slice(0, 5);
+                if (booking.booking_date_time) {
+                    const dateObj = new Date(booking.booking_date_time);
+                    const timeHHMM = `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
                     confirmedBlocks.push(timeHHMM);
 
                     // Calculate mathematical buffer string (exactly 60 minutes/1 hour later)
@@ -159,6 +161,7 @@ document.getElementById('rebook-date')?.addEventListener('change', async (event)
             });
         }
     } catch (err) {
+        Sentry.captureException(err);
         console.error("Availability check failed:", err);
     }
 });
@@ -206,9 +209,8 @@ document.getElementById('rebook-form')?.addEventListener('submit', async (e) => 
         const { error } = await supabase
             .from('bookings')
             .update({
-                booking_date: formattedDateString,
-                booking_time: formattedTimeString,
-                status: 'pending'
+                booking_date_time: new Date(`${formattedDateString}T${formattedTimeString}`).toISOString(),
+                booking_status: 'pending'
             })
             .eq('id', targetBookingId);
 
@@ -220,6 +222,7 @@ document.getElementById('rebook-form')?.addEventListener('submit', async (e) => 
             submitBtn.style.cursor = 'not-allowed';
         }
     } catch (err) {
+        Sentry.captureException(err);
         console.error("Update failed:", err);
         showValidationFeedback("Network error: Could not complete transaction. Please check your connection and try again.", "error");
         if (submitBtn) submitBtn.disabled = false;

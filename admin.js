@@ -609,7 +609,7 @@ document.getElementById('view-confirmed')?.addEventListener('click', async (even
         try {
             const { error } = await supabaseBackend
                 .from('bookings')
-                .update({ status: 'completed' })
+                .update({ booking_status: 'completed' })
                 .eq('id', bookingId);
 
             if (error) throw error;
@@ -622,6 +622,7 @@ document.getElementById('view-confirmed')?.addEventListener('click', async (even
             const completedData = await fetchBookingsByStatus('completed', completedRecordLimit);
             renderCompletedBookings(completedData.data);
         } catch (err) {
+            Sentry.captureException(err);
             console.error("Complete error:", err);
             showToast('Network error: Could not update booking. Please try again.');
         }
@@ -730,32 +731,18 @@ async function generateCalendar(month, year) {
 
         if (data) {
             data.forEach(booking => {
-                let bYear, bMonth, bDay;
-                if (booking.booking_date) {
-                    const parts = booking.booking_date.split('-');
-                    bYear = parseInt(parts[0], 10);
-                    bMonth = parseInt(parts[1], 10) - 1; // Convert 1-indexed to 0-indexed month
-                    bDay = parseInt(parts[2], 10);
-                } else if (booking.booking_date_time) {
-                    const dateObj = new Date(booking.booking_date_time);
-                    bYear = dateObj.getFullYear();
-                    bMonth = dateObj.getMonth();
-                    bDay = dateObj.getDate();
-                }
+                const dateObj = new Date(booking.booking_date_time);
+                const bYear = dateObj.getFullYear();
+                const bMonth = dateObj.getMonth();
+                const bDay = dateObj.getDate();
 
                 // If dates match, append visual indicator
                 if (bYear === year && bMonth === month) {
                     const dayCell = calendarGrid.querySelector(`.calendar-day[data-day="${bDay}"]`);
                     if (dayCell) {
-                        let timeStr = 'N/A';
-                        if (booking.booking_time) {
-                            timeStr = booking.booking_time.slice(0, 5);
-                        } else if (booking.booking_date_time) {
-                            const dateObj = new Date(booking.booking_date_time);
-                            const hours = String(dateObj.getHours()).padStart(2, '0');
-                            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                            timeStr = `${hours}:${minutes}`;
-                        }
+                        const hours = String(dateObj.getHours()).padStart(2, '0');
+                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        const timeStr = `${hours}:${minutes}`;
 
                         const indicator = document.createElement('div');
                         Object.assign(indicator.style, {
@@ -778,6 +765,7 @@ async function generateCalendar(month, year) {
             });
         }
     } catch (err) {
+        Sentry.captureException(err);
         console.error("Error populating calendar confirmed bookings:", err);
     }
 }
