@@ -59,6 +59,11 @@
             <section id="view-pending" class="tab-content active" style="display: block;">
                 <div class="tab-header">
                     <h2 id="pending-heading">Pending Confirmation</h2>
+                    <div id="pending-sub-nav" style="display: flex; gap: 0.5rem; margin-top: 1rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                        <button class="pending-pill-btn" data-status="pending" style="background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.3); color: #ffffff; border-radius: 50px; padding: 0.4rem 1.2rem; font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;">New Requests</button>
+                        <button class="pending-pill-btn" data-status="admin_proposed" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); color: #a3a3ac; border-radius: 50px; padding: 0.4rem 1.2rem; font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;">Sent Proposals</button>
+                        <button class="pending-pill-btn" data-status="customer_proposed" style="background: transparent; border: 1px solid rgba(255, 255, 255, 0.1); color: #a3a3ac; border-radius: 50px; padding: 0.4rem 1.2rem; font-family: 'Outfit', sans-serif; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;">Customer Responses</button>
+                    </div>
                 </div>
             </section>
             <section id="view-confirmed" class="tab-content" style="display: none;">

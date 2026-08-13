@@ -106,7 +106,7 @@ export const emailTemplateConfirmed = `<!DOCTYPE html>
     </tr>
   </table>
 </body>
-</html>\`;
+</html>`;
 export const emailTemplateAdminProposed = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -252,7 +252,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
     </tr>
   </table>
 </body>
-</html>\`;
+</html>`;
 export const emailTemplateCancelled = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -371,4 +371,4 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
     </tr>
   </table>
 </body>
-</html>\`;
+</html>`;

@@ -585,9 +585,108 @@ document.getElementById('ptbm-btn-close')?.addEventListener('click', () => {
             modal.classList.add('hidden');
         }, 300);
     }
-    activeBookingIdForProposal = null;
     document.getElementById('ptbm-date').value = "";
     document.getElementById('ptbm-time').value = "";
+});
+
+// Submit event listener for the 'Propose Time' modal form
+document.getElementById('ptbm-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const submitBtn = document.getElementById('ptbm-btn-submit');
+    const dateVal = document.getElementById('ptbm-date').value;
+    const timeVal = document.getElementById('ptbm-time').value;
+
+    if (!activeBookingIdForProposal) {
+        showToast("Error: No active booking selected.");
+        return;
+    }
+
+    if (!dateVal || !timeVal) {
+        showToast("Please select a date and time.");
+        return;
+    }
+
+    // Combine date and time into a single valid ISO 8601 string
+    const combinedDateTime = new Date(`${dateVal}T${timeVal}`).toISOString();
+
+    // Ensure supabaseBackend is defined
+    if (typeof supabaseBackend === 'undefined') {
+        window.supabaseBackend = window.supabase;
+    }
+
+    // Disable submit button and show visual loading feedback
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Sending...';
+    }
+
+    try {
+        // Execute the Supabase update query
+        const { error } = await supabaseBackend
+            .from('bookings')
+            .update({
+                booking_status: 'admin_proposed',
+                booking_date_time: combinedDateTime
+            })
+            .eq('id', activeBookingIdForProposal);
+
+        if (error) throw error;
+
+        // Close the modal overlay
+        const modal = document.getElementById('ptbm-overlay');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // Clear the form inputs
+        document.getElementById('ptbm-date').value = "";
+        document.getElementById('ptbm-time').value = "";
+        activeBookingIdForProposal = null;
+
+        // Trigger success notification toast
+        showToast("Proposal sent successfully!");
+
+        // Find and Reset Pills
+        document.querySelectorAll('.pending-pill-btn').forEach(btn => {
+            btn.style.background = 'transparent';
+            btn.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+            btn.style.color = '#a3a3ac';
+        });
+
+        // Activate Target Pill
+        const targetPill = document.querySelector('.pending-pill-btn[data-status="admin_proposed"]');
+        if (targetPill) {
+            targetPill.style.background = 'rgba(255, 255, 255, 0.15)';
+            targetPill.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+            targetPill.style.color = '#ffffff';
+        }
+
+        // Update Heading
+        const heading = document.getElementById('pending-heading');
+        if (heading) {
+            heading.innerText = "Sent Proposals";
+        }
+
+        // Fetch and Render
+        const updatedBookings = await fetchBookingsByStatus('admin_proposed');
+        if (updatedBookings.error) throw updatedBookings.error;
+        renderPendingBookings(updatedBookings.data);
+    } catch (err) {
+        Sentry.captureException(err);
+        console.error("Propose time submit error:", err);
+        showToast("Failed to send proposal. Please try again.");
+    } finally {
+        // Restore submit button state
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Send Proposal';
+        }
+    }
 });
 
 // Single event delegation listener on #view-confirmed for complete action button and accordion card toggling
@@ -994,6 +1093,52 @@ document.getElementById('view-cancelled')?.addEventListener('click', (event) => 
                 card.classList.remove('expanded');
             }
         }
+    }
+});
+
+// Standalone event delegation listener for the pending sub-navigation pills
+document.getElementById('pending-sub-nav')?.addEventListener('click', async (event) => {
+    const pillBtn = event.target.closest('.pending-pill-btn');
+    if (!pillBtn) return;
+
+    event.preventDefault();
+
+    // Reset all elements with class .pending-pill-btn to inactive state
+    document.querySelectorAll('.pending-pill-btn').forEach(btn => {
+        btn.style.background = 'transparent';
+        btn.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        btn.style.color = '#a3a3ac';
+    });
+
+    // Apply active inline styles strictly to the clicked button
+    pillBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+    pillBtn.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+    pillBtn.style.color = '#ffffff';
+
+    // Extract target status string from clicked button
+    const statusString = pillBtn.getAttribute('data-status');
+
+    // Update text content of #pending-heading based on status
+    const heading = document.getElementById('pending-heading');
+    if (heading) {
+        if (statusString === 'pending') {
+            heading.innerText = 'Pending Confirmation';
+        } else if (statusString === 'admin_proposed') {
+            heading.innerText = 'Sent Proposals';
+        } else if (statusString === 'customer_proposed') {
+            heading.innerText = 'Customer Responses';
+        }
+    }
+
+    // Fetch and render filtered records
+    try {
+        const { data, error } = await fetchBookingsByStatus(statusString);
+        if (error) throw error;
+        renderPendingBookings(data);
+    } catch (err) {
+        Sentry.captureException(err);
+        console.error("Error loading bookings by status:", err);
+        showToast("Network error: Could not load bookings.");
     }
 });
 
