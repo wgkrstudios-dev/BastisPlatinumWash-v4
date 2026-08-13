@@ -1006,6 +1006,26 @@ a,
   transform: scale(0.96);
 }
 
+.btn-call {
+  background: rgba(167, 139, 250, 0.08) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(167, 139, 250, 0.3) !important;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-call:hover {
+  background: rgba(167, 139, 250, 0.18) !important;
+  border-color: rgba(167, 139, 250, 0.7) !important;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.2);
+}
+
+.btn-call:active {
+  transform: scale(0.96);
+}
+
 .btn-cancel {
   background: rgba(248, 113, 113, 0.08) !important;
   color: #ffffff !important;

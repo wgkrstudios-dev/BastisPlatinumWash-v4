@@ -373,9 +373,19 @@ function renderPendingBookings(data) {
                     <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
                 </div>
                 <div class="action-buttons">
-                    <button class="btn-confirm">Confirm</button>
-                    <button class="btn-propose">Propose Time</button>
-                    <button class="btn-cancel">Cancel</button>
+                    ${booking.booking_status === 'admin_proposed' ? `
+                        <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
+                        <button class="btn-cancel">Cancel</button>
+                    ` : booking.booking_status === 'customer_proposed' ? `
+                        <button class="btn-confirm">Accept Counter</button>
+                        <button class="btn-propose">Propose Time</button>
+                        <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
+                        <button class="btn-cancel">Cancel</button>
+                    ` : `
+                        <button class="btn-confirm">Confirm</button>
+                        <button class="btn-propose">Propose Time</button>
+                        <button class="btn-cancel">Cancel</button>
+                    `}
                 </div>
             </div>
         `;
