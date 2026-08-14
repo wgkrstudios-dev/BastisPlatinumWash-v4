@@ -1203,3 +1203,14 @@ a,
   border-color: rgba(249, 115, 22, 0.6) !important;
   color: #ffffff !important;
 }
+
+.pending-pill-btn {
+  padding: 8px 12px !important;
+  text-align: center !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
