@@ -845,13 +845,21 @@ a,
 }
 
 /* Administrative Tab Layout and State Classes */
+#tab-navigation {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 #tab-navigation::-webkit-scrollbar {
   display: none;
 }
 
-#tab-navigation {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+#tab-navigation .tab-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-content {
