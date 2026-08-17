@@ -196,7 +196,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
                           <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                             <tr>
                               <td align="center" bgcolor="#10b981" style="border-radius: 8px;">
-                                <a href="success.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; border: 1px solid #10b981;">
+                                <a href="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/success.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; border: 1px solid #10b981;">
                                   Confirm New Booking Time
                                 </a>
                               </td>
