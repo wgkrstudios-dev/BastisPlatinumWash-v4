@@ -38,6 +38,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rebook-email').value = bookingData.customer_email || '';
         document.getElementById('rebook-car-size').value = bookingData.vehicle_type || '';
 
+        // Safe parsing and formatting of the proposed appointment date and time
+        if (bookingData.booking_date_time) {
+            const dateObj = new Date(bookingData.booking_date_time);
+            if (!isNaN(dateObj.getTime())) {
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                
+                document.getElementById('rebook-date').value = `${year}-${month}-${day}`;
+                document.getElementById('rebook-time').value = `${hours}:${minutes}`;
+            }
+        }
+
         // Reveal the prefilled form by removing the inline display: none style
         const rebookForm = document.getElementById('rebook-form');
         if (rebookForm) {
@@ -210,13 +226,13 @@ document.getElementById('rebook-form')?.addEventListener('submit', async (e) => 
             .from('bookings')
             .update({
                 booking_date_time: new Date(`${formattedDateString}T${formattedTimeString}`).toISOString(),
-                booking_status: 'pending'
+                booking_status: 'customer_proposed'
             })
             .eq('id', targetBookingId);
 
         if (error) throw error;
 
-        showValidationFeedback("Booking successfully updated! Your new time slot is pending confirmation.", "success");
+        showValidationFeedback("Counter-proposal sent successfully! The admin will review your requested time.", "success");
         if (submitBtn) {
             submitBtn.style.opacity = '0.5';
             submitBtn.style.cursor = 'not-allowed';

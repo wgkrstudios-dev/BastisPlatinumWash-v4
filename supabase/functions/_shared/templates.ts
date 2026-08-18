@@ -210,7 +210,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
                           <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                             <tr>
                               <td align="center" style="border-radius: 8px; border: 1px solid #ef4444;">
-                                <a href="rebook.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ef4444; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                                <a href="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/rebook.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ef4444; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
                                   Propose Alternative Time
                                 </a>
                               </td>
