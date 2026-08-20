@@ -332,7 +332,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
                     <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                       <tr>
                         <td align="center" bgcolor="#1f2937" style="border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);">
-                          <a href="#" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                          <a href="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/index.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
                             Book a New Wash
                           </a>
                         </td>

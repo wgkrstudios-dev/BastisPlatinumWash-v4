@@ -180,6 +180,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Parse URL query parameter for booking_id to autofill rebooking details
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('booking_id');
+
+    if (bookingId) {
+        (async function loadRebookingDetails() {
+            try {
+                const { data, error } = await supabaseBackend
+                    .from('bookings')
+                    .select('customer_name, customer_phone, customer_email, customer_address, vehicle_type')
+                    .eq('id', bookingId)
+                    .single();
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data) {
+                    // Populate DOM fields with retrieved customer profile details
+                    customerNameInput.value = data.customer_name || '';
+                    customerPhoneInput.value = data.customer_phone || '';
+                    customerEmailInput.value = data.customer_email || '';
+                    customerAddressInput.value = data.customer_address || '';
+                    
+                    // Force the user to choose a new booking date and time
+                    bookingDateTimeInput.value = '';
+
+                    // Synchronize the package checkboxes/radios and update UI pricing/labels
+                    if (data.vehicle_type === 'Hatchback & Sedan') {
+                        radioHatchback.checked = true;
+                        radioSUV.checked = false;
+                        priceDisplayVal.textContent = '100';
+                        modalVehicleDisplay.textContent = 'Hatchback & Sedan';
+                        modalPriceDisplay.textContent = 'R100';
+                    } else if (data.vehicle_type === 'SUV & Bakkie') {
+                        radioHatchback.checked = false;
+                        radioSUV.checked = true;
+                        priceDisplayVal.textContent = '120';
+                        modalVehicleDisplay.textContent = 'SUV & Bakkie';
+                        modalPriceDisplay.textContent = 'R120';
+                    }
+
+                    // Programmatically reveal the booking modal
+                    bookingModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        bookingModal.classList.add('active');
+                    }, 10);
+
+                    // Clean the URL parameters to prevent re-execution on page reload
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('booking_id');
+                    window.history.replaceState({}, document.title, url.pathname + url.search);
+                }
+            } catch (err) {
+                if (typeof Sentry !== 'undefined') {
+                    Sentry.captureException(err);
+                }
+                console.error('Failed to pre-populate rebooking details:', err);
+                showToast('Unable to retrieve previous booking details. Please complete the form manually.', 'error');
+            }
+        })();
+    }
+
     // Handle form submission and validation
     if (bookingForm) {
         bookingForm.addEventListener('submit', async (event) => {
