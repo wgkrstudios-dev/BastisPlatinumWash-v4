@@ -13,18 +13,33 @@ const supabaseBackend = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBL
 /**
  * Transmits a verified booking payload directly to the Supabase database.
  * 
- * @param {string} vehicleType - Must match 'Hatchback & Sedan' or 'SUV & Bakkie'
- * @param {number} totalPrice - Must be exactly 100 or 120 matching the regional currency pricing
+ * @param {string} vehicleType - Formatted summary of selected vehicles
+ * @param {number} totalPrice - Total calculated booking price in ZAR
  * @param {string} bookingDateTime - ISO 8601 formatted timestamp string
  * @param {string} customerAddress - Target destination for mobile detailing unit deployment
  * @param {string} customerEmail - Customer contact email address
+ * @param {string} customerName - Customer contact name
+ * @param {string} customerPhone - Customer contact phone number
+ * @param {number} hatchbackQty - Count of Hatchback & Sedan vehicles
+ * @param {number} suvQty - Count of SUV & Bakkie vehicles
  * @returns {Promise<{success: boolean, data?: any, error?: string}>}
  */
-async function insertNewBooking(vehicleType, totalPrice, bookingDateTime, customerAddress, customerEmail, customerName, customerPhone) {
+async function insertNewBooking(vehicleType, totalPrice, bookingDateTime, customerAddress, customerEmail, customerName, customerPhone, hatchbackQty, suvQty) {
     try {
-        // Enforce NOT NULL data constraints
-        if (!vehicleType || !totalPrice || !bookingDateTime || !customerAddress || !customerEmail || !customerName || !customerPhone) {
-            throw new Error("Payload error: Required fields (Name, Phone, etc.) are missing.");
+        // Enforce NOT NULL data constraints & minimum vehicle quantity validation
+        if (
+            !vehicleType ||
+            !totalPrice ||
+            !bookingDateTime ||
+            !customerAddress ||
+            !customerEmail ||
+            !customerName ||
+            !customerPhone ||
+            hatchbackQty === undefined ||
+            suvQty === undefined ||
+            (Number(hatchbackQty) + Number(suvQty)) <= 0
+        ) {
+            throw new Error("Payload error: Required fields (Name, Phone, vehicle quantities > 0, etc.) are missing.");
         }
 
         const { data, error } = await supabaseBackend
@@ -33,11 +48,13 @@ async function insertNewBooking(vehicleType, totalPrice, bookingDateTime, custom
                 {
                     vehicle_type: vehicleType,
                     total_price: totalPrice,
+                    hatchback_qty: hatchbackQty,
+                    suv_qty: suvQty,
                     booking_date_time: bookingDateTime,
                     customer_address: customerAddress,
                     customer_email: customerEmail,
-                    customer_name: customerName,    // Added
-                    customer_phone: customerPhone,  // Added
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
                     booking_status: 'pending'
                 }
             ])
@@ -45,6 +62,9 @@ async function insertNewBooking(vehicleType, totalPrice, bookingDateTime, custom
 
         if (error) {
             console.error("Database Insert Exception encountered:", error.message);
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
             return { success: false, error: error.message };
         }
 
@@ -52,6 +72,9 @@ async function insertNewBooking(vehicleType, totalPrice, bookingDateTime, custom
         return { success: true, data: data };
     } catch (catchError) {
         console.error("Network runtime failure:", catchError);
+        if (window.Sentry) {
+            Sentry.captureException(catchError);
+        }
         return { success: false, error: catchError.message };
     }
 }
@@ -141,18 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerAddressInput = document.getElementById('customer-address');
     const bookingDateTimeInput = document.getElementById('booking-date-time');
 
-    // Live update for pricing on package selection (will be fully calculated in Step 4)
+    // Dynamic pricing calculation based on selected vehicle quantities
     function updatePricingState() {
         try {
+            const total = (hatchbackQty * 100) + (suvQty * 120);
             if (priceDisplayVal) {
-                const total = (hatchbackQty * 100) + (suvQty * 120);
-                priceDisplayVal.textContent = total > 0 ? String(total) : '100';
+                priceDisplayVal.textContent = String(total);
             }
         } catch (error) {
+            console.error('Error updating pricing state:', error);
             if (window.Sentry) {
                 Sentry.captureException(error);
             }
-            console.error('Error updating pricing state:', error);
         }
     }
 
@@ -268,32 +291,90 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set initial UI state (counters at 0, minus buttons disabled, cards unselected)
     updateVehicleCardUI();
 
+    // Converts numerical vehicle counts into human-readable summary strings
+    function getVehicleSummaryString(hatchbackQty, suvQty) {
+        try {
+            if (hatchbackQty > 0 && suvQty > 0) {
+                return `${hatchbackQty}x Hatchback & Sedan, ${suvQty}x SUV & Bakkie`;
+            } else if (hatchbackQty > 0) {
+                return `${hatchbackQty}x Hatchback & Sedan`;
+            } else if (suvQty > 0) {
+                return `${suvQty}x SUV & Bakkie`;
+            } else {
+                return "";
+            }
+        } catch (error) {
+            console.error('Error generating vehicle summary string:', error);
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+            return "";
+        }
+    }
+
+    // Helper function to reveal the booking modal overlay with multi-vehicle details
+    function openBookingModal() {
+        try {
+            const totalPrice = (hatchbackQty * 100) + (suvQty * 120);
+            const vehicleSummary = getVehicleSummaryString(hatchbackQty, suvQty);
+
+            if (modalVehicleDisplay) {
+                modalVehicleDisplay.textContent = vehicleSummary || 'No vehicle selected';
+            }
+            if (modalPriceDisplay) {
+                modalPriceDisplay.textContent = 'R' + totalPrice;
+            }
+
+            document.body.style.overflow = 'hidden';
+
+            if (btnBookNow) {
+                btnBookNow.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btnBookNow.style.transform = '';
+                    if (bookingModal) {
+                        bookingModal.classList.remove('hidden');
+                        setTimeout(() => {
+                            bookingModal.classList.add('active');
+                        }, 10);
+                    }
+                }, 120);
+            } else if (bookingModal) {
+                bookingModal.classList.remove('hidden');
+                setTimeout(() => {
+                    bookingModal.classList.add('active');
+                }, 10);
+            }
+        } catch (error) {
+            showToast('Failed to open booking details. Please try again.', 'error');
+            console.error('Error opening booking details modal:', error);
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+        }
+    }
+
     // Open Booking Modal Trigger
     btnBookNow.addEventListener('click', () => {
-        // Read active state of radio inputs
-        const vehicleType = radioHatchback.checked ? 'Hatchback & Sedan' : 'SUV & Bakkie';
-        const totalPrice = radioHatchback.checked ? '100' : '120';
+        try {
+            const totalVehicles = hatchbackQty + suvQty;
+            if (totalVehicles <= 0) {
+                showToast('Please select at least one vehicle to proceed with booking.', 'error');
+                return;
+            }
 
-        // Pre-populate modal overview labels
-        modalVehicleDisplay.textContent = vehicleType;
-        modalPriceDisplay.textContent = `R${totalPrice}`;
-
-        // Subtle button scaling interaction
-        btnBookNow.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            btnBookNow.style.transform = '';
-
-            // Present hidden modal overlay
-            bookingModal.classList.remove('hidden');
-            // Allow container transitions to trigger correctly
-            setTimeout(() => {
-                bookingModal.classList.add('active');
-            }, 10);
-        }, 120);
+            openBookingModal();
+        } catch (error) {
+            showToast('Unable to open booking form. Please try again.', 'error');
+            console.error('Error opening booking modal:', error);
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+        }
     });
 
     // Close Booking Modal function
     function closeModal() {
+        document.body.style.overflow = '';
         bookingModal.classList.remove('active');
         setTimeout(() => {
             bookingModal.classList.add('hidden');
@@ -385,10 +466,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const customerAddress = customerAddressInput.value.trim();
             const bookingDateTime = bookingDateTimeInput.value;
 
-            // Extract selected vehicle specifications
-            const isHatch = radioHatchback.checked;
-            const vehicleType = isHatch ? 'Hatchback & Sedan' : 'SUV & Bakkie';
-            const totalPrice = isHatch ? 100 : 120;
+            // Multi-vehicle specification & dynamic pricing
+            const vehicleType = getVehicleSummaryString(hatchbackQty, suvQty);
+            const totalPrice = (hatchbackQty * 100) + (suvQty * 120);
 
             // --- Regex Validation Layer ---
 
@@ -431,6 +511,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 customerAddress: customerAddress,
                 bookingDateTime: bookingDateTime,
                 vehicleType: vehicleType,
+                hatchback_qty: hatchbackQty,
+                suv_qty: suvQty,
                 totalPrice: totalPrice,
                 timestamp: new Date().toISOString()
             };
@@ -440,6 +522,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Booking state successfully saved to session storage.', sessionPayload);
             } catch (storageError) {
                 console.warn('Unable to write to session storage:', storageError);
+                if (window.Sentry) {
+                    Sentry.captureException(storageError);
+                }
             }
 
             // Backend Transmission payload validation and formatting
@@ -459,8 +544,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 formattedIsoDateTime,
                 customerAddress,
                 customerEmail,
-                customerName,    // Ensure this matches the variable defined above
-                customerPhone    // Ensure this matches the variable defined above
+                customerName,
+                customerPhone,
+                hatchbackQty,
+                suvQty
             );
 
             // Re-enable button
@@ -468,8 +555,62 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = false;
 
             if (result.success) {
+                // 1. Construct and store comprehensive multi-vehicle booking details in sessionStorage
+                try {
+                    const bookingRecord = (result.data && result.data[0]) ? result.data[0] : {};
+                    const bookingId = bookingRecord.id || null;
+
+                    const lastBookingDetails = {
+                        bookingId: bookingId,
+                        vehicleSummary: vehicleType,
+                        vehicleType: vehicleType,
+                        hatchback_qty: hatchbackQty,
+                        suv_qty: suvQty,
+                        totalPrice: totalPrice,
+                        customerName: customerName,
+                        customerEmail: customerEmail,
+                        customerPhone: cleanPhone,
+                        customerAddress: customerAddress,
+                        bookingDateTime: formattedIsoDateTime,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    sessionStorage.setItem('lastBooking', JSON.stringify(lastBookingDetails));
+                    sessionStorage.setItem('latest_booking', JSON.stringify(lastBookingDetails));
+                    console.log('Successfully cached booking details in sessionStorage:', lastBookingDetails);
+                } catch (storageErr) {
+                    console.error('Failed to cache booking details in sessionStorage:', storageErr);
+                    if (window.Sentry) {
+                        Sentry.captureException(storageErr);
+                    }
+                }
+
+                // 2. Complete state and UI reset back to initial defaults
+                try {
+                    // Reset numerical quantity variables to zero
+                    hatchbackQty = 0;
+                    suvQty = 0;
+
+                    // Reset vehicle counter displays and decrement button disabled states
+                    updateVehicleCardUI();
+
+                    // Reset main page dynamic price display back to 0
+                    updatePricingState();
+
+                    // Reset HTML form fields
+                    bookingForm.reset();
+
+                    // Restore body scroll
+                    document.body.style.overflow = '';
+                } catch (resetErr) {
+                    console.error('Failed to reset booking UI and numerical state:', resetErr);
+                    if (window.Sentry) {
+                        Sentry.captureException(resetErr);
+                    }
+                }
+
                 showToast("Booking request recieved! Keep an eye on your inbox, we'll confirm your appointment soon.", "success");
-                bookingForm.reset();
+
                 // Close the modal after a short delay to allow success toast to be read
                 setTimeout(() => {
                     closeModal();
