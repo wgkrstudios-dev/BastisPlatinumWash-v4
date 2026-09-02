@@ -43,28 +43,36 @@
         <div class="vehicle-grid">
 
           <!-- Vehicle Option: Hatchback & Sedan -->
-          <label class="vehicle-card" for="vehicle-hatchback">
-            <input type="radio" name="vehicle_type" id="vehicle-hatchback" class="vehicle-radio" checked>
+          <div class="vehicle-card" id="card-hatchback">
             <div class="card-content">
               <div class="vehicle-image-wrapper">
                 <img src="assets/hatchbackandsedan-buttonlogo.png" alt="Hatchback and Sedan" class="vehicle-img">
               </div>
               <span class="vehicle-name">Hatchback &amp; Sedan</span>
-              <span class="selection-indicator"></span>
+              <span class="vehicle-price-tag">R100 each</span>
+              <div class="quantity-control">
+                <button type="button" class="btn-qty btn-qty-minus" id="btn-hatchback-minus" aria-label="Decrease Hatchback &amp; Sedan quantity">-</button>
+                <span class="qty-value" id="hatchback-qty">0</span>
+                <button type="button" class="btn-qty btn-qty-plus" id="btn-hatchback-plus" aria-label="Increase Hatchback &amp; Sedan quantity">+</button>
+              </div>
             </div>
-          </label>
+          </div>
 
           <!-- Vehicle Option: SUV & Bakkie -->
-          <label class="vehicle-card" for="vehicle-suv">
-            <input type="radio" name="vehicle_type" id="vehicle-suv" class="vehicle-radio">
+          <div class="vehicle-card" id="card-suv">
             <div class="card-content">
               <div class="vehicle-image-wrapper">
                 <img src="assets/suvandbakkie-buttonlogo.png" alt="SUV and Bakkie" class="vehicle-img">
               </div>
               <span class="vehicle-name">SUV &amp; Bakkie</span>
-              <span class="selection-indicator"></span>
+              <span class="vehicle-price-tag">R120 each</span>
+              <div class="quantity-control">
+                <button type="button" class="btn-qty btn-qty-minus" id="btn-suv-minus" aria-label="Decrease SUV &amp; Bakkie quantity">-</button>
+                <span class="qty-value" id="suv-qty">0</span>
+                <button type="button" class="btn-qty btn-qty-plus" id="btn-suv-plus" aria-label="Increase SUV &amp; Bakkie quantity">+</button>
+              </div>
             </div>
-          </label>
+          </div>
 
         </div>
       </section>

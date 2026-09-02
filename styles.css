@@ -167,15 +167,7 @@ body {
 }
 
 .vehicle-card {
-  cursor: pointer;
   position: relative;
-}
-
-.vehicle-radio {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
 }
 
 .card-content {
@@ -201,8 +193,10 @@ body {
   transform: translateY(-2px);
 }
 
-/* Card Selection States */
-.vehicle-radio:checked+.card-content {
+/* Card Active / Selected States (When vehicle quantity > 0) */
+.vehicle-card.active .card-content,
+.vehicle-card.selected .card-content,
+.vehicle-card.has-qty .card-content {
   border-color: var(--border-active);
   background: var(--card-bg-selected);
   box-shadow: 0 0 20px var(--accent-glow);
@@ -238,33 +232,88 @@ body {
   margin-top: 0.25rem;
 }
 
-/* Custom Circular Radio Dots */
-.selection-indicator {
-  width: 18px;
-  height: 18px;
+.vehicle-price-tag {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 0.25rem;
+  letter-spacing: 0.02em;
+}
+
+/* Multi-Vehicle Quantity Counter Controls */
+.quantity-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  width: 100%;
+}
+
+.btn-qty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: 50%;
-  border: 2px solid var(--text-muted);
-  margin-top: 0.75rem;
-  position: relative;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-family: var(--font-family);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: all var(--transition-speed) ease;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.vehicle-radio:checked+.card-content .selection-indicator {
-  border-color: var(--text-primary);
-  background-color: var(--text-primary);
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+.btn-qty:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--border-hover);
+  color: #ffffff;
 }
 
-.vehicle-radio:checked+.card-content .selection-indicator::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--bg-color);
+.btn-qty:active:not(:disabled) {
+  transform: scale(0.95);
+  border-color: var(--border-active);
+}
+
+.btn-qty:focus-visible {
+  outline: 2px solid var(--primary-accent);
+  outline-offset: 2px;
+}
+
+.btn-qty:disabled,
+.btn-qty[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-qty-minus,
+.btn-qty-plus {
+  touch-action: manipulation;
+}
+
+.qty-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  min-width: 28px;
+  text-align: center;
+  display: inline-block;
+  user-select: none;
+  -webkit-user-select: none;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Service Detail Cards */

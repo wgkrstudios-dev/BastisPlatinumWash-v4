@@ -103,13 +103,29 @@ function showToast(message, type = 'success') {
     }, 4000);
 }
 
+// Multi-vehicle booking numerical quantity state tracking
+let hatchbackQty = 0;
+let suvQty = 0;
+
 // Orchestrate DOM interactions when markup structure is parsed
 document.addEventListener('DOMContentLoaded', () => {
     // Select dynamic elements on the page
     const priceDisplayVal = document.getElementById('price-display-val');
-    const radioHatchback = document.getElementById('vehicle-hatchback');
-    const radioSUV = document.getElementById('vehicle-suv');
     const btnBookNow = document.getElementById('btn-book-now');
+
+    // Vehicle Counter & Card Selectors
+    const cardHatchback = document.getElementById('card-hatchback');
+    const cardSUV = document.getElementById('card-suv');
+    const btnHatchbackMinus = document.getElementById('btn-hatchback-minus');
+    const btnHatchbackPlus = document.getElementById('btn-hatchback-plus');
+    const hatchbackQtyDisplay = document.getElementById('hatchback-qty');
+    const btnSuvMinus = document.getElementById('btn-suv-minus');
+    const btnSuvPlus = document.getElementById('btn-suv-plus');
+    const suvQtyDisplay = document.getElementById('suv-qty');
+
+    // Fallbacks for pending refactoring steps
+    const radioHatchback = document.getElementById('vehicle-hatchback') || { checked: false };
+    const radioSUV = document.getElementById('vehicle-suv') || { checked: false };
 
     // Modal Selectors
     const bookingModal = document.getElementById('booking-modal');
@@ -125,18 +141,132 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerAddressInput = document.getElementById('customer-address');
     const bookingDateTimeInput = document.getElementById('booking-date-time');
 
-    // Live update for pricing on package selection
+    // Live update for pricing on package selection (will be fully calculated in Step 4)
     function updatePricingState() {
-        if (radioHatchback.checked) {
-            priceDisplayVal.textContent = '100';
-        } else if (radioSUV.checked) {
-            priceDisplayVal.textContent = '120';
+        try {
+            if (priceDisplayVal) {
+                const total = (hatchbackQty * 100) + (suvQty * 120);
+                priceDisplayVal.textContent = total > 0 ? String(total) : '100';
+            }
+        } catch (error) {
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+            console.error('Error updating pricing state:', error);
         }
     }
 
-    // Bind selection events
-    radioHatchback.addEventListener('change', updatePricingState);
-    radioSUV.addEventListener('change', updatePricingState);
+    /**
+     * Synchronizes vehicle counter displays, decrement button disabled states,
+     * and active card highlights with current numerical quantity state.
+     */
+    function updateVehicleCardUI() {
+        try {
+            // Update numeric quantity text displays
+            if (hatchbackQtyDisplay) {
+                hatchbackQtyDisplay.textContent = String(hatchbackQty);
+            }
+            if (suvQtyDisplay) {
+                suvQtyDisplay.textContent = String(suvQty);
+            }
+
+            // Toggle disabled state & styling on decrement buttons
+            if (btnHatchbackMinus) {
+                btnHatchbackMinus.disabled = (hatchbackQty === 0);
+                btnHatchbackMinus.classList.toggle('disabled', hatchbackQty === 0);
+            }
+            if (btnSuvMinus) {
+                btnSuvMinus.disabled = (suvQty === 0);
+                btnSuvMinus.classList.toggle('disabled', suvQty === 0);
+            }
+
+            // Toggle active card styling based on quantity selection
+            if (cardHatchback) {
+                if (hatchbackQty > 0) {
+                    cardHatchback.classList.add('active');
+                } else {
+                    cardHatchback.classList.remove('active');
+                }
+            }
+            if (cardSUV) {
+                if (suvQty > 0) {
+                    cardSUV.classList.add('active');
+                } else {
+                    cardSUV.classList.remove('active');
+                }
+            }
+
+            // Trigger pricing calculation update
+            if (typeof updatePricingState === 'function') {
+                updatePricingState();
+            }
+        } catch (error) {
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+            console.error('Error updating vehicle card UI:', error);
+        }
+    }
+
+    // Bind quantity counter control event listeners
+    if (btnHatchbackPlus) {
+        btnHatchbackPlus.addEventListener('click', () => {
+            try {
+                hatchbackQty += 1;
+                updateVehicleCardUI();
+            } catch (error) {
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+                console.error('Error incrementing hatchback quantity:', error);
+            }
+        });
+    }
+
+    if (btnHatchbackMinus) {
+        btnHatchbackMinus.addEventListener('click', () => {
+            try {
+                hatchbackQty = Math.max(0, hatchbackQty - 1);
+                updateVehicleCardUI();
+            } catch (error) {
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+                console.error('Error decrementing hatchback quantity:', error);
+            }
+        });
+    }
+
+    if (btnSuvPlus) {
+        btnSuvPlus.addEventListener('click', () => {
+            try {
+                suvQty += 1;
+                updateVehicleCardUI();
+            } catch (error) {
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+                console.error('Error incrementing SUV quantity:', error);
+            }
+        });
+    }
+
+    if (btnSuvMinus) {
+        btnSuvMinus.addEventListener('click', () => {
+            try {
+                suvQty = Math.max(0, suvQty - 1);
+                updateVehicleCardUI();
+            } catch (error) {
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+                console.error('Error decrementing SUV quantity:', error);
+            }
+        });
+    }
+
+    // Set initial UI state (counters at 0, minus buttons disabled, cards unselected)
+    updateVehicleCardUI();
 
     // Open Booking Modal Trigger
     btnBookNow.addEventListener('click', () => {
