@@ -420,75 +420,83 @@ function getVehicleBreakdownHTML(booking) {
  * @param {Array<Object>} data - Array of booking objects from Supabase.
  */
 function renderPendingBookings(data) {
-    const section = document.getElementById('view-pending');
-    if (!section) return;
+    try {
+        const section = document.getElementById('view-pending');
+        if (!section) return;
 
-    // Clear existing booking cards to prevent duplicates, preserving other static headers
-    section.querySelectorAll('.booking-card').forEach(card => card.remove());
-    section.querySelectorAll('.no-bookings').forEach(el => el.remove());
+        // Clear existing booking cards to prevent duplicates, preserving other static headers
+        section.querySelectorAll('.booking-card').forEach(card => card.remove());
+        section.querySelectorAll('.no-bookings').forEach(el => el.remove());
 
-    if (!data || data.length === 0) {
-        const noBookings = document.createElement('div');
-        noBookings.className = 'no-bookings';
-        noBookings.innerText = 'No pending bookings found.';
-        section.appendChild(noBookings);
-        return;
-    }
-
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    data.forEach(booking => {
-        // Format booking date time safely with standard JS Date methods
-        let formattedDate = 'N/A';
-        if (booking.booking_date_time) {
-            const dateObj = new Date(booking.booking_date_time);
-            const day = dateObj.getDate();
-            const month = months[dateObj.getMonth()];
-            const year = dateObj.getFullYear();
-            const hours = String(dateObj.getHours()).padStart(2, '0');
-            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-            formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+        if (!data || data.length === 0) {
+            const noBookings = document.createElement('div');
+            noBookings.className = 'no-bookings';
+            noBookings.innerText = 'No pending bookings found.';
+            section.appendChild(noBookings);
+            return;
         }
 
-        const card = document.createElement('div');
-        card.className = 'booking-card';
-        card.setAttribute('data-id', booking.id);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        card.innerHTML = `
-            <div class="view-a">
-                <div class="customer-info-row">
-                    <span class="customer-name">${booking.customer_name || 'N/A'}</span>
-                    ${getVehicleIconsHTML(booking)}
-                </div>
-                <div class="booking-time">${formattedDate}</div>
-            </div>
-            <div class="view-b" style="display: none;">
-                <div class="details-grid">
-                    <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
-                    <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
-                    <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
-                </div>
-                <div class="action-buttons">
-                    ${booking.booking_status === 'admin_proposed' ? `
-                        <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
-                        <button class="btn-cancel">Cancel</button>
-                    ` : booking.booking_status === 'customer_proposed' ? `
-                        <button class="btn-confirm">Accept Counter</button>
-                        <button class="btn-propose">Propose Time</button>
-                        <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
-                        <button class="btn-cancel">Cancel</button>
-                    ` : `
-                        <button class="btn-confirm">Confirm</button>
-                        <button class="btn-propose">Propose Time</button>
-                        <button class="btn-cancel">Cancel</button>
-                    `}
-                </div>
-            </div>
-        `;
+        data.forEach(booking => {
+            // Format booking date time safely with standard JS Date methods
+            let formattedDate = 'N/A';
+            if (booking.booking_date_time) {
+                const dateObj = new Date(booking.booking_date_time);
+                const day = dateObj.getDate();
+                const month = months[dateObj.getMonth()];
+                const year = dateObj.getFullYear();
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+            }
 
-        section.appendChild(card);
-    });
+            const card = document.createElement('div');
+            card.className = 'booking-card';
+            card.setAttribute('data-id', booking.id);
+
+            card.innerHTML = `
+                <div class="view-a">
+                    <div class="customer-info-row">
+                        <span class="customer-name">${booking.customer_name || 'N/A'}</span>
+                        ${getVehicleIconsHTML(booking)}
+                    </div>
+                    <div class="booking-time">${formattedDate}</div>
+                </div>
+                <div class="view-b" style="display: none;">
+                    <div class="details-grid">
+                        <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
+                        <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
+                        <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
+                        ${getVehicleBreakdownHTML(booking)}
+                        <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
+                    </div>
+                    <div class="action-buttons">
+                        ${booking.booking_status === 'admin_proposed' ? `
+                            <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
+                            <button class="btn-cancel">Cancel</button>
+                        ` : booking.booking_status === 'customer_proposed' ? `
+                            <button class="btn-confirm">Accept Counter</button>
+                            <button class="btn-propose">Propose Time</button>
+                            <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
+                            <button class="btn-cancel">Cancel</button>
+                        ` : `
+                            <button class="btn-confirm">Confirm</button>
+                            <button class="btn-propose">Propose Time</button>
+                            <button class="btn-cancel">Cancel</button>
+                        `}
+                    </div>
+                </div>
+            `;
+
+            section.appendChild(card);
+        });
+    } catch (error) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(error);
+        }
+        console.error('Error rendering pending bookings:', error);
+    }
 }
 
 /**
@@ -496,63 +504,71 @@ function renderPendingBookings(data) {
  * @param {Array<Object>} data - Array of booking objects from Supabase.
  */
 function renderConfirmedBookings(data) {
-    const section = document.getElementById('view-confirmed');
-    if (!section) return;
+    try {
+        const section = document.getElementById('view-confirmed');
+        if (!section) return;
 
-    // Clear existing booking cards to prevent duplicates, preserving other static headers
-    section.querySelectorAll('.booking-card').forEach(card => card.remove());
-    section.querySelectorAll('.no-bookings').forEach(el => el.remove());
+        // Clear existing booking cards to prevent duplicates, preserving other static headers
+        section.querySelectorAll('.booking-card').forEach(card => card.remove());
+        section.querySelectorAll('.no-bookings').forEach(el => el.remove());
 
-    if (!data || data.length === 0) {
-        const noBookings = document.createElement('div');
-        noBookings.className = 'no-bookings';
-        noBookings.innerText = 'No confirmed bookings found.';
-        section.appendChild(noBookings);
-        return;
-    }
-
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    data.forEach(booking => {
-        // Format booking date time safely with standard JS Date methods
-        let formattedDate = 'N/A';
-        if (booking.booking_date_time) {
-            const dateObj = new Date(booking.booking_date_time);
-            const day = dateObj.getDate();
-            const month = months[dateObj.getMonth()];
-            const year = dateObj.getFullYear();
-            const hours = String(dateObj.getHours()).padStart(2, '0');
-            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-            formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+        if (!data || data.length === 0) {
+            const noBookings = document.createElement('div');
+            noBookings.className = 'no-bookings';
+            noBookings.innerText = 'No confirmed bookings found.';
+            section.appendChild(noBookings);
+            return;
         }
 
-        const card = document.createElement('div');
-        card.className = 'booking-card';
-        card.setAttribute('data-id', booking.id);
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-        card.innerHTML = `
-            <div class="view-a">
-                <div class="customer-info-row">
-                    <span class="customer-name">${booking.customer_name || 'N/A'}</span>
-                    ${getVehicleIconsHTML(booking)}
-                </div>
-                <div class="booking-time">${formattedDate}</div>
-            </div>
-            <div class="view-b" style="display: none;">
-                <div class="details-grid">
-                    <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
-                    <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
-                    <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
-                </div>
-                <div class="action-buttons">
-                    <button class="btn-complete">Mark as Completed</button>
-                </div>
-            </div>
-        `;
+        data.forEach(booking => {
+            // Format booking date time safely with standard JS Date methods
+            let formattedDate = 'N/A';
+            if (booking.booking_date_time) {
+                const dateObj = new Date(booking.booking_date_time);
+                const day = dateObj.getDate();
+                const month = months[dateObj.getMonth()];
+                const year = dateObj.getFullYear();
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+            }
 
-        section.appendChild(card);
-    });
+            const card = document.createElement('div');
+            card.className = 'booking-card';
+            card.setAttribute('data-id', booking.id);
+
+            card.innerHTML = `
+                <div class="view-a">
+                    <div class="customer-info-row">
+                        <span class="customer-name">${booking.customer_name || 'N/A'}</span>
+                        ${getVehicleIconsHTML(booking)}
+                    </div>
+                    <div class="booking-time">${formattedDate}</div>
+                </div>
+                <div class="view-b" style="display: none;">
+                    <div class="details-grid">
+                        <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
+                        <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
+                        <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
+                        ${getVehicleBreakdownHTML(booking)}
+                        <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-complete">Mark as Completed</button>
+                    </div>
+                </div>
+            `;
+
+            section.appendChild(card);
+        });
+    } catch (error) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(error);
+        }
+        console.error('Error rendering confirmed bookings:', error);
+    }
 }
 
 // Single event delegation listener on #view-pending for the accordion card toggling
@@ -1003,69 +1019,77 @@ let completedRecordLimit = 50;
  * @param {Array<Object>} data - Array of booking objects from Supabase.
  */
 function renderCompletedBookings(data) {
-    const container = document.getElementById('completed-cards-container');
-    if (!container) return;
+    try {
+        const container = document.getElementById('completed-cards-container');
+        if (!container) return;
 
-    // Clear existing cards
-    container.innerHTML = '';
+        // Clear existing cards
+        container.innerHTML = '';
 
-    if (!data || data.length === 0) {
-        const noBookings = document.createElement('div');
-        noBookings.className = 'no-bookings';
-        noBookings.innerText = 'No completed bookings found.';
-        container.appendChild(noBookings);
-        return;
-    }
-
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    data.forEach(booking => {
-        // Format booking date time safely with standard JS Date methods
-        let formattedDate = 'N/A';
-        if (booking.booking_date_time) {
-            const dateObj = new Date(booking.booking_date_time);
-            const day = dateObj.getDate();
-            const month = months[dateObj.getMonth()];
-            const year = dateObj.getFullYear();
-            const hours = String(dateObj.getHours()).padStart(2, '0');
-            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-            formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+        if (!data || data.length === 0) {
+            const noBookings = document.createElement('div');
+            noBookings.className = 'no-bookings';
+            noBookings.innerText = 'No completed bookings found.';
+            container.appendChild(noBookings);
+            return;
         }
 
-        const card = document.createElement('div');
-        card.className = 'booking-card';
-        card.setAttribute('data-id', booking.id);
-        
-        // Finalized aesthetic style overrides
-        Object.assign(card.style, {
-            background: 'rgba(20, 20, 20, 0.4)',
-            opacity: '0.85',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        data.forEach(booking => {
+            // Format booking date time safely with standard JS Date methods
+            let formattedDate = 'N/A';
+            if (booking.booking_date_time) {
+                const dateObj = new Date(booking.booking_date_time);
+                const day = dateObj.getDate();
+                const month = months[dateObj.getMonth()];
+                const year = dateObj.getFullYear();
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'booking-card';
+            card.setAttribute('data-id', booking.id);
+            
+            // Finalized aesthetic style overrides
+            Object.assign(card.style, {
+                background: 'rgba(20, 20, 20, 0.4)',
+                opacity: '0.85',
+                border: '1px solid rgba(255, 255, 255, 0.05)'
+            });
+
+            // Green checkmark SVG icon
+            const greenCheckSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-left: 6px;"><path d="M20 6L9 17L4 12"/></svg>`;
+
+            card.innerHTML = `
+                <div class="view-a" style="cursor: pointer;">
+                    <div class="customer-info-row" style="display: flex; align-items: center; gap: 4px;">
+                        <span class="customer-name">${booking.customer_name || 'N/A'} ${greenCheckSvg}</span>
+                        ${getVehicleIconsHTML(booking)}
+                    </div>
+                    <div class="booking-time">${formattedDate}</div>
+                </div>
+                <div class="view-b" style="display: none;">
+                    <div class="details-grid">
+                        <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
+                        <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
+                        <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
+                        ${getVehicleBreakdownHTML(booking)}
+                        <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(card);
         });
-
-        // Green checkmark SVG icon
-        const greenCheckSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-left: 6px;"><path d="M20 6L9 17L4 12"/></svg>`;
-
-        card.innerHTML = `
-            <div class="view-a" style="cursor: pointer;">
-                <div class="customer-info-row" style="display: flex; align-items: center; gap: 4px;">
-                    <span class="customer-name">${booking.customer_name || 'N/A'} ${greenCheckSvg}</span>
-                    ${getVehicleIconsHTML(booking)}
-                </div>
-                <div class="booking-time">${formattedDate}</div>
-            </div>
-            <div class="view-b" style="display: none;">
-                <div class="details-grid">
-                    <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
-                    <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
-                    <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
-                </div>
-            </div>
-        `;
-
-        container.appendChild(card);
-    });
+    } catch (error) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(error);
+        }
+        console.error('Error rendering completed bookings:', error);
+    }
 }
 
 // Load More Historical Data logic
@@ -1107,69 +1131,77 @@ let cancelledRecordLimit = 50;
  * @param {Array<Object>} data - Array of booking objects from Supabase.
  */
 function renderCancelledBookings(data) {
-    const container = document.getElementById('cancelled-cards-container');
-    if (!container) return;
+    try {
+        const container = document.getElementById('cancelled-cards-container');
+        if (!container) return;
 
-    // Clear existing cards
-    container.innerHTML = '';
+        // Clear existing cards
+        container.innerHTML = '';
 
-    if (!data || data.length === 0) {
-        const noBookings = document.createElement('div');
-        noBookings.className = 'no-bookings';
-        noBookings.innerText = 'No cancelled bookings found.';
-        container.appendChild(noBookings);
-        return;
-    }
-
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    data.forEach(booking => {
-        // Format booking date time safely with standard JS Date methods
-        let formattedDate = 'N/A';
-        if (booking.booking_date_time) {
-            const dateObj = new Date(booking.booking_date_time);
-            const day = dateObj.getDate();
-            const month = months[dateObj.getMonth()];
-            const year = dateObj.getFullYear();
-            const hours = String(dateObj.getHours()).padStart(2, '0');
-            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-            formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+        if (!data || data.length === 0) {
+            const noBookings = document.createElement('div');
+            noBookings.className = 'no-bookings';
+            noBookings.innerText = 'No cancelled bookings found.';
+            container.appendChild(noBookings);
+            return;
         }
 
-        const card = document.createElement('div');
-        card.className = 'booking-card';
-        card.setAttribute('data-id', booking.id);
-        
-        // Cancelled aesthetic style overrides: faint red border and muted background
-        Object.assign(card.style, {
-            background: 'rgba(20, 20, 20, 0.4)',
-            opacity: '0.85',
-            border: '1px solid rgba(248, 113, 113, 0.3)'
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        data.forEach(booking => {
+            // Format booking date time safely with standard JS Date methods
+            let formattedDate = 'N/A';
+            if (booking.booking_date_time) {
+                const dateObj = new Date(booking.booking_date_time);
+                const day = dateObj.getDate();
+                const month = months[dateObj.getMonth()];
+                const year = dateObj.getFullYear();
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                formattedDate = `${day} ${month} ${year}, ${hours}:${minutes}`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'booking-card';
+            card.setAttribute('data-id', booking.id);
+            
+            // Cancelled aesthetic style overrides: faint red border and muted background
+            Object.assign(card.style, {
+                background: 'rgba(20, 20, 20, 0.4)',
+                opacity: '0.85',
+                border: '1px solid rgba(248, 113, 113, 0.3)'
+            });
+
+            // Red 'X' SVG icon
+            const redCrossSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-left: 6px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+            card.innerHTML = `
+                <div class="view-a" style="cursor: pointer;">
+                    <div class="customer-info-row" style="display: flex; align-items: center; gap: 4px;">
+                        <span class="customer-name">${booking.customer_name || 'N/A'} ${redCrossSvg}</span>
+                        ${getVehicleIconsHTML(booking)}
+                    </div>
+                    <div class="booking-time">${formattedDate}</div>
+                </div>
+                <div class="view-b" style="display: none;">
+                    <div class="details-grid">
+                        <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
+                        <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
+                        <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
+                        ${getVehicleBreakdownHTML(booking)}
+                        <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(card);
         });
-
-        // Red 'X' SVG icon
-        const redCrossSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle; margin-left: 6px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-
-        card.innerHTML = `
-            <div class="view-a" style="cursor: pointer;">
-                <div class="customer-info-row" style="display: flex; align-items: center; gap: 4px;">
-                    <span class="customer-name">${booking.customer_name || 'N/A'} ${redCrossSvg}</span>
-                    ${getVehicleIconsHTML(booking)}
-                </div>
-                <div class="booking-time">${formattedDate}</div>
-            </div>
-            <div class="view-b" style="display: none;">
-                <div class="details-grid">
-                    <p><strong>Phone:</strong> ${booking.customer_phone || 'N/A'}</p>
-                    <p><strong>Email:</strong> ${booking.customer_email || 'N/A'}</p>
-                    <p><strong>Address:</strong> ${booking.customer_address || 'N/A'}</p>
-                    <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
-                </div>
-            </div>
-        `;
-
-        container.appendChild(card);
-    });
+    } catch (error) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(error);
+        }
+        console.error('Error rendering cancelled bookings:', error);
+    }
 }
 
 // Load More Cancelled Historical Data logic
