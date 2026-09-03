@@ -1269,7 +1269,7 @@ a,
 .admin-vehicle-icons {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   vertical-align: middle;
   margin: 0 4px;
   flex-shrink: 0;
@@ -1277,9 +1277,9 @@ a,
 }
 
 .admin-vehicle-icon {
-  height: 20px;
+  height: 50px;
   width: auto;
-  max-width: 38px;
+  max-width: 63px;
   object-fit: contain;
   display: inline-block;
   vertical-align: middle;
