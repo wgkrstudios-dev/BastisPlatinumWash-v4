@@ -1264,3 +1264,39 @@ a,
   max-width: none !important;
   box-sizing: border-box !important;
 }
+
+/* Admin Panel - Vehicle Type Icons (View A) */
+.admin-vehicle-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  vertical-align: middle;
+  margin: 0 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-vehicle-icon {
+  height: 20px;
+  width: auto;
+  max-width: 38px;
+  object-fit: contain;
+  display: inline-block;
+  vertical-align: middle;
+  opacity: 0.95;
+  transition: opacity 0.2s ease;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .admin-vehicle-icons {
+    gap: 4px;
+    margin: 0 2px;
+  }
+
+  .admin-vehicle-icon {
+    height: 18px;
+    max-width: 34px;
+  }
+}

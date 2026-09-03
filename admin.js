@@ -319,6 +319,103 @@ function togglePendingHeadingView(viewType) {
 }
 
 /**
+ * Generates the HTML markup for vehicle type icons in View A of booking cards.
+ * Supports explicit multi-vehicle numeric quantities (hatchback_qty / suv_qty)
+ * with a fallback parser for legacy vehicle_type strings.
+ *
+ * @param {Object} booking - The booking record from Supabase.
+ * @returns {string} HTML string containing vehicle icon(s) or fallback label.
+ */
+function getVehicleIconsHTML(booking) {
+    try {
+        if (!booking || typeof booking !== 'object') {
+            return '<span class="admin-vehicle-icons"><span class="vehicle-type">N/A</span></span>';
+        }
+
+        let hasHatchback = false;
+        let hasSuv = false;
+
+        const hasHatchQty = booking.hatchback_qty != null && !isNaN(Number(booking.hatchback_qty));
+        const hasSuvQty = booking.suv_qty != null && !isNaN(Number(booking.suv_qty));
+
+        // Check explicit numeric quantities first
+        if (hasHatchQty || hasSuvQty) {
+            hasHatchback = Number(booking.hatchback_qty) > 0;
+            hasSuv = Number(booking.suv_qty) > 0;
+        } else {
+            // Legacy Fallback: Inspect booking.vehicle_type string
+            const vehicleTypeStr = String(booking.vehicle_type || '').toLowerCase();
+            if (vehicleTypeStr.includes('hatchback') || vehicleTypeStr.includes('sedan')) {
+                hasHatchback = true;
+            }
+            if (vehicleTypeStr.includes('suv') || vehicleTypeStr.includes('bakkie') || vehicleTypeStr.includes('4x4')) {
+                hasSuv = true;
+            }
+        }
+
+        const hatchbackImg = '<img class="admin-vehicle-icon" src="assets/hatchbackandsedan-buttonlogo.png" alt="Hatchback & Sedan" title="Hatchback & Sedan">';
+        const suvImg = '<img class="admin-vehicle-icon" src="assets/suvandbakkie-buttonlogo.png" alt="SUV & Bakkie" title="SUV & Bakkie">';
+
+        if (hasHatchback && hasSuv) {
+            return `<span class="admin-vehicle-icons">${hatchbackImg}${suvImg}</span>`;
+        } else if (hasHatchback) {
+            return `<span class="admin-vehicle-icons">${hatchbackImg}</span>`;
+        } else if (hasSuv) {
+            return `<span class="admin-vehicle-icons">${suvImg}</span>`;
+        } else {
+            return `<span class="admin-vehicle-icons"><span class="vehicle-type">${booking.vehicle_type || 'N/A'}</span></span>`;
+        }
+    } catch (err) {
+        console.error('Error generating vehicle icons HTML:', err);
+        return `<span class="admin-vehicle-icons"><span class="vehicle-type">${(booking && booking.vehicle_type) || 'N/A'}</span></span>`;
+    }
+}
+
+/**
+ * Generates the HTML markup for the vehicle quantity breakdown in View B.
+ * Displays counts for Hatchback & Sedan and SUV & Bakkie, with fallback parsing
+ * for legacy records where explicit quantity columns are null/undefined.
+ *
+ * @param {Object} booking - The booking record from Supabase.
+ * @returns {string} HTML paragraph elements displaying vehicle breakdown.
+ */
+function getVehicleBreakdownHTML(booking) {
+    try {
+        if (!booking || typeof booking !== 'object') {
+            return '<p><strong>Hatchback & Sedan:</strong> 0</p><p><strong>SUV & Bakkie:</strong> 0</p>';
+        }
+
+        let hatchbackCount = 0;
+        let suvCount = 0;
+
+        const hasExplicitHatchback = booking.hatchback_qty !== null && booking.hatchback_qty !== undefined;
+        const hasExplicitSuv = booking.suv_qty !== null && booking.suv_qty !== undefined;
+
+        if (hasExplicitHatchback || hasExplicitSuv) {
+            hatchbackCount = Number(booking.hatchback_qty) || 0;
+            suvCount = Number(booking.suv_qty) || 0;
+        } else {
+            const vehicleTypeStr = String(booking.vehicle_type || '');
+
+            if (/hatchback|sedan/i.test(vehicleTypeStr)) {
+                const match = vehicleTypeStr.match(/(\d+)\s*x\s*[^,]*?(?:hatchback|sedan)/i);
+                hatchbackCount = match ? (parseInt(match[1], 10) || 1) : 1;
+            }
+
+            if (/suv|bakkie|4x4/i.test(vehicleTypeStr)) {
+                const match = vehicleTypeStr.match(/(\d+)\s*x\s*[^,]*?(?:suv|bakkie|4x4)/i);
+                suvCount = match ? (parseInt(match[1], 10) || 1) : 1;
+            }
+        }
+
+        return `<p><strong>Hatchback & Sedan:</strong> ${hatchbackCount}</p><p><strong>SUV & Bakkie:</strong> ${suvCount}</p>`;
+    } catch (err) {
+        console.error('Error generating vehicle breakdown HTML:', err);
+        return '<p><strong>Hatchback & Sedan:</strong> 0</p><p><strong>SUV & Bakkie:</strong> 0</p>';
+    }
+}
+
+/**
  * Render pending bookings cards inside the pending tab section.
  * @param {Array<Object>} data - Array of booking objects from Supabase.
  */
@@ -361,7 +458,7 @@ function renderPendingBookings(data) {
             <div class="view-a">
                 <div class="customer-info-row">
                     <span class="customer-name">${booking.customer_name || 'N/A'}</span>
-                    <span class="vehicle-type">${booking.vehicle_type || 'N/A'}</span>
+                    ${getVehicleIconsHTML(booking)}
                 </div>
                 <div class="booking-time">${formattedDate}</div>
             </div>
@@ -437,7 +534,7 @@ function renderConfirmedBookings(data) {
             <div class="view-a">
                 <div class="customer-info-row">
                     <span class="customer-name">${booking.customer_name || 'N/A'}</span>
-                    <span class="vehicle-type">${booking.vehicle_type || 'N/A'}</span>
+                    ${getVehicleIconsHTML(booking)}
                 </div>
                 <div class="booking-time">${formattedDate}</div>
             </div>
@@ -953,7 +1050,7 @@ function renderCompletedBookings(data) {
             <div class="view-a" style="cursor: pointer;">
                 <div class="customer-info-row" style="display: flex; align-items: center; gap: 4px;">
                     <span class="customer-name">${booking.customer_name || 'N/A'} ${greenCheckSvg}</span>
-                    <span class="vehicle-type">${booking.vehicle_type || 'N/A'}</span>
+                    ${getVehicleIconsHTML(booking)}
                 </div>
                 <div class="booking-time">${formattedDate}</div>
             </div>
@@ -1057,7 +1154,7 @@ function renderCancelledBookings(data) {
             <div class="view-a" style="cursor: pointer;">
                 <div class="customer-info-row" style="display: flex; align-items: center; gap: 4px;">
                     <span class="customer-name">${booking.customer_name || 'N/A'} ${redCrossSvg}</span>
-                    <span class="vehicle-type">${booking.vehicle_type || 'N/A'}</span>
+                    ${getVehicleIconsHTML(booking)}
                 </div>
                 <div class="booking-time">${formattedDate}</div>
             </div>
