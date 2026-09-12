@@ -6,20 +6,395 @@ window.addEventListener('unhandledrejection', function (event) {
     Sentry.captureException(event.reason);
 });
 
+// Ensure global supabaseBackend instance is available
+if (typeof supabaseBackend === 'undefined') {
+    window.supabaseBackend = window.supabase;
+}
+
 // Global state for tracking incoming 'pending' bookings
 let unreadCount = 0;
+let currentTab = 'pending';
 
-// Update UI logic for the notification bell badge
+// Notifications State Management
+const dismissedNotificationKeys = new Set();
+let activeNotifications = [];
+
+// --- Notification Renderer Functions ---
+
+/**
+ * Updates the visual notification badge counter in the admin navbar.
+ * @param {number} count - Number of active notifications
+ */
 function updateNotificationBadge(count) {
-    const badge = document.getElementById('notification-badge');
-    if (badge) {
-        if (count > 0) {
-            badge.innerText = count;
-            badge.style.display = 'block';
-        } else {
-            badge.style.display = 'none';
-        }
+  const badge = document.getElementById('notification-badge') || document.querySelector('#notification-icon .nav-badge');
+  if (!badge) return;
+
+  const numericCount = typeof count === 'number' ? count : activeNotifications.length;
+  if (numericCount <= 0) {
+    badge.textContent = '0';
+    badge.style.display = 'none';
+    badge.classList.remove('has-notifications');
+  } else {
+    badge.textContent = numericCount > 99 ? '99+' : numericCount.toString();
+    badge.style.display = 'inline-flex';
+    badge.classList.add('has-notifications');
+  }
+}
+
+/**
+ * Helper to escape HTML to prevent XSS injection from customer data.
+ */
+function escapeNotificationHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Renders the active notifications list inside #notification-list.
+ */
+function renderNotificationList() {
+  const listContainer = document.getElementById('notification-list');
+  if (!listContainer) return;
+
+  if (!Array.isArray(activeNotifications) || activeNotifications.length === 0) {
+    listContainer.innerHTML = '<div class="notification-empty">No new notifications</div>';
+    updateNotificationBadge(0);
+    return;
+  }
+
+  const itemsHTML = activeNotifications.map((item) => {
+    const key = escapeNotificationHTML(item.key || '');
+    const bookingId = escapeNotificationHTML(item.bookingId || '');
+    const targetTab = escapeNotificationHTML(item.targetTab || 'pending');
+    const subStatus = escapeNotificationHTML(item.subStatus || '');
+    const text = escapeNotificationHTML(item.text || 'New notification');
+    
+    let timeFormatted = '';
+    if (item.timestamp) {
+      const d = new Date(item.timestamp);
+      timeFormatted = !isNaN(d.getTime()) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
     }
+
+    return `
+      <div class="notification-item" 
+           data-key="${key}" 
+           data-booking-id="${bookingId}" 
+           data-target-tab="${targetTab}" 
+           data-sub-status="${subStatus}"
+           role="button"
+           tabindex="0">
+        <div class="notification-item-text">${text}</div>
+        ${timeFormatted ? `<div class="notification-item-time">${timeFormatted}</div>` : ''}
+      </div>
+    `.trim();
+  }).join('');
+
+  listContainer.innerHTML = itemsHTML;
+  updateNotificationBadge(activeNotifications.length);
+}
+
+// --- Notification Intake & Template Engine ---
+
+/**
+ * Central notification intake function that formats, deduplicates, alerts, and renders incoming events.
+ * @param {string} type - 'pending' | 'customer_proposed' | 'cancelled' | 'reschedule_accepted' | 'upcoming_1hr'
+ * @param {Object} bookingRecord - Supabase booking record
+ * @param {Object} [extraData] - Optional auxiliary data (e.g. { minutesRemaining: 45 })
+ */
+function handleIncomingNotification(type, bookingRecord, extraData = {}) {
+  try {
+    if (!bookingRecord || !bookingRecord.id) return;
+
+    // 1. Generate unique composite key
+    let key = `${type}:${bookingRecord.id}`;
+    if (type === 'upcoming_1hr') {
+      const scheduleTime = bookingRecord.booking_date_time || bookingRecord.date || 'scheduled';
+      key = `${type}:${bookingRecord.id}:${scheduleTime}`;
+    }
+
+    // 2. Guard: verify key is not in persistent dismissal cache or already active
+    if (dismissedNotificationKeys.has(key)) {
+      return;
+    }
+    const alreadyActive = activeNotifications.some(item => item.key === key);
+    if (alreadyActive) {
+      return;
+    }
+
+    // 3. Resolve customer name
+    const customerName = (bookingRecord.customer_name || bookingRecord.full_name || 'Customer').trim();
+
+    // 4. Construct template text and deep-link routing targets
+    let text = '';
+    let targetTab = 'pending';
+    let subStatus = '';
+
+    switch (type) {
+      case 'pending':
+        text = `New booking received from ${customerName}`;
+        targetTab = 'pending';
+        break;
+
+      case 'customer_proposed':
+        text = `${customerName} has sent a proposal`;
+        targetTab = 'pending';
+        subStatus = 'customer_proposed';
+        break;
+
+      case 'cancelled':
+        text = `booking cancelled: ${customerName}`;
+        targetTab = 'confirmed';
+        subStatus = 'cancelled';
+        break;
+
+      case 'reschedule_accepted':
+        text = `${customerName} has accepted your proposed reschedule`;
+        targetTab = 'confirmed';
+        break;
+
+      case 'upcoming_1hr':
+        const mins = extraData && extraData.minutesRemaining ? extraData.minutesRemaining : 60;
+        text = `Heads up: booking for ${customerName} upcoming in ${mins} minutes`;
+        targetTab = 'confirmed';
+        break;
+
+      default:
+        text = `Update on booking for ${customerName}`;
+        targetTab = 'pending';
+        break;
+    }
+
+    // 5. Prepend to active notifications array
+    const notificationItem = {
+      key,
+      bookingId: bookingRecord.id,
+      targetTab,
+      subStatus,
+      text,
+      timestamp: new Date().toISOString()
+    };
+    activeNotifications.unshift(notificationItem);
+
+    // 6. Audio chime alert (with graceful autoplay policy handling)
+    try {
+      const chimeAudio = new Audio('assets/chime.mp3');
+      chimeAudio.volume = 0.6;
+      const playPromise = chimeAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Autoplay was prevented by browser policy; silently ignore
+        });
+      }
+    } catch (audioErr) {
+      // Audio not supported or missing asset; silently continue
+    }
+
+    // 7. Update UI list and badge
+    if (typeof renderNotificationList === 'function') {
+      renderNotificationList();
+    }
+  } catch (err) {
+    console.error('Error handling incoming notification:', err);
+    if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+      window.Sentry.captureException(err);
+    }
+  }
+}
+
+// --- Supabase Realtime Subscription Manager ---
+let realtimeBookingsChannel = null;
+
+/**
+ * Tears down any active Supabase Realtime channel to prevent duplicate event delivery.
+ */
+function teardownRealtimeBookingsSubscription() {
+  try {
+    if (realtimeBookingsChannel && typeof supabaseBackend.removeChannel === 'function') {
+      supabaseBackend.removeChannel(realtimeBookingsChannel);
+      realtimeBookingsChannel = null;
+    }
+  } catch (err) {
+    console.error('Error tearing down realtime bookings channel:', err);
+    if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+      window.Sentry.captureException(err);
+    }
+  }
+}
+
+/**
+ * Establishes a centralized Supabase Realtime subscription for INSERT and UPDATE on public:bookings.
+ */
+function setupRealtimeBookingsSubscription() {
+  try {
+    // 1. Clean up any existing channel before subscribing
+    teardownRealtimeBookingsSubscription();
+
+    realtimeBookingsChannel = supabaseBackend
+      .channel('public:bookings-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'bookings' },
+        (payload) => {
+          try {
+            if (payload && payload.new) {
+              handleIncomingNotification('pending', payload.new);
+              // Also refresh current tab view if applicable
+              if (typeof fetchBookingsByStatus === 'function' && currentTab === 'pending') {
+                fetchBookingsByStatus('pending');
+              }
+            }
+          } catch (insertErr) {
+            console.error('Error handling realtime INSERT event:', insertErr);
+            if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+              window.Sentry.captureException(insertErr);
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bookings' },
+        (payload) => {
+          try {
+            if (!payload || !payload.new) return;
+            const newRecord = payload.new;
+            const oldRecord = payload.old || {};
+
+            // A. Customer sent a proposal
+            if (newRecord.booking_status === 'customer_proposed' || newRecord.status === 'customer_proposed') {
+              handleIncomingNotification('customer_proposed', newRecord);
+            }
+            // B. Customer accepted a reschedule proposal
+            else if (
+              (newRecord.booking_status === 'confirmed' || newRecord.status === 'confirmed') &&
+              (oldRecord.booking_status === 'proposed' || oldRecord.booking_status === 'customer_proposed' || newRecord.reschedule_accepted === true)
+            ) {
+              handleIncomingNotification('reschedule_accepted', newRecord);
+            }
+            // C. Booking cancelled
+            else if (
+              (newRecord.booking_status === 'cancelled' || newRecord.status === 'cancelled') &&
+              oldRecord.booking_status !== 'cancelled'
+            ) {
+              handleIncomingNotification('cancelled', newRecord);
+            }
+
+            // Refresh the current view to reflect data updates
+            if (typeof fetchBookingsByStatus === 'function' && typeof currentTab === 'string') {
+              fetchBookingsByStatus(currentTab);
+            }
+          } catch (updateErr) {
+            console.error('Error handling realtime UPDATE event:', updateErr);
+            if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+              window.Sentry.captureException(updateErr);
+            }
+          }
+        }
+      )
+      .subscribe((status, err) => {
+        if (err) {
+          console.error('Realtime subscription error:', err);
+          if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+            window.Sentry.captureException(err);
+          }
+        }
+      });
+  } catch (err) {
+    console.error('Failed to initialize realtime bookings channel:', err);
+    if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+      window.Sentry.captureException(err);
+    }
+  }
+}
+
+// --- Confirmed Bookings 60-Minute Upcoming Polling Worker ---
+let upcomingBookingsInterval = null;
+
+/**
+ * Background worker that queries today's confirmed bookings and alerts if scheduled within 60 minutes.
+ */
+async function checkUpcomingConfirmedBookings() {
+  try {
+    if (!supabaseBackend) return;
+
+    // Get today's start and end boundaries in local ISO format (YYYY-MM-DD)
+    const now = new Date();
+    const todayDateStr = now.toISOString().split('T')[0];
+
+    // Query confirmed bookings for today
+    const { data: bookings, error } = await supabaseBackend
+      .from('bookings')
+      .select('*')
+      .eq('booking_status', 'confirmed');
+
+    if (error) {
+      console.error('Error polling upcoming confirmed bookings:', error);
+      if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+        window.Sentry.captureException(error);
+      }
+      return;
+    }
+
+    if (!Array.isArray(bookings) || bookings.length === 0) return;
+
+    const currentTimeMs = now.getTime();
+
+    bookings.forEach((booking) => {
+      try {
+        // Resolve timestamp from booking_date_time or combined booking_date / booking_time
+        let scheduledDate = null;
+        if (booking.booking_date_time) {
+          scheduledDate = new Date(booking.booking_date_time);
+        } else if (booking.booking_date && booking.booking_time) {
+          scheduledDate = new Date(`${booking.booking_date}T${booking.booking_time}`);
+        } else if (booking.date && booking.time) {
+          scheduledDate = new Date(`${booking.date}T${booking.time}`);
+        }
+
+        if (!scheduledDate || isNaN(scheduledDate.getTime())) return;
+
+        // Calculate delta in minutes: (booking_date_time - now) / 60000
+        const deltaMs = scheduledDate.getTime() - currentTimeMs;
+        const deltaMinutes = Math.round(deltaMs / 60000);
+
+        // Alert condition: between 1 and 60 minutes remaining
+        if (deltaMinutes > 0 && deltaMinutes <= 60) {
+          handleIncomingNotification('upcoming_1hr', booking, { minutesRemaining: deltaMinutes });
+        }
+      } catch (itemErr) {
+        console.error('Error calculating time for booking record:', itemErr);
+      }
+    });
+  } catch (err) {
+    console.error('Unexpected error in checkUpcomingConfirmedBookings worker:', err);
+    if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+      window.Sentry.captureException(err);
+    }
+  }
+}
+
+/**
+ * Starts the 60-second polling worker for upcoming confirmed bookings.
+ */
+function startUpcomingBookingsWorker() {
+  stopUpcomingBookingsWorker();
+  checkUpcomingConfirmedBookings(); // Run initial check immediately
+  upcomingBookingsInterval = setInterval(checkUpcomingConfirmedBookings, 60000);
+}
+
+/**
+ * Stops the upcoming bookings polling worker.
+ */
+function stopUpcomingBookingsWorker() {
+  if (upcomingBookingsInterval) {
+    clearInterval(upcomingBookingsInterval);
+    upcomingBookingsInterval = null;
+  }
 }
 
 // Automatic session check on page load
@@ -32,40 +407,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('login-container').style.display = 'none';
             document.getElementById('dashboard-container').style.display = 'block';
 
+            await loadDismissedNotificationKeys();
+
             // Automatically fetch and render the initial pending bookings
             const { data: pendingData, error: pendingError } = await fetchBookingsByStatus('pending');
             if (!pendingError && pendingData) {
                 renderPendingBookings(pendingData);
             }
 
-            // Execute the offline notification count
-            const { count, error: countError } = await supabase
-                .from('bookings')
-                .select('*', { count: 'exact', head: true })
-                .eq('booking_status', 'pending');
-
-            if (!countError && count !== null) {
-                unreadCount = count;
-            }
-            updateNotificationBadge(unreadCount);
+            // Sync badge directly with active notifications state
+            updateNotificationBadge(activeNotifications.length);
 
             // Establish the Realtime channel subscription for the restored session
-            if (typeof supabaseBackend === 'undefined') {
-                window.supabaseBackend = window.supabase;
-            }
-
-            supabaseBackend
-                .channel('public:bookings')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'bookings' },
-                    (payload) => {
-                        unreadCount++;
-                        updateNotificationBadge(unreadCount);
-                        new Audio('assets/chime.mp3').play().catch(e => console.log('Audio blocked by browser'));
-                    }
-                )
-                .subscribe();
+            setupRealtimeBookingsSubscription();
+            startUpcomingBookingsWorker();
         } else {
             // Ensure default state: login is visible, dashboard is hidden
             document.getElementById('login-container').style.display = 'block';
@@ -100,36 +455,17 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('dashboard-container').style.display = 'block';
 
-        // Establish the initial unread count of pending bookings
+        await loadDismissedNotificationKeys();
+
         try {
-            const { count, error: countError } = await supabase
-                .from('bookings')
-                .select('*', { count: 'exact', head: true })
-                .eq('booking_status', 'pending');
-
-            if (!countError && count !== null) {
-                unreadCount = count;
-            }
-            updateNotificationBadge(unreadCount);
-
-            if (typeof supabaseBackend === 'undefined') {
-                window.supabaseBackend = window.supabase;
-            }
-
-            supabaseBackend
-                .channel('public:bookings')
-                .on(
-                    'postgres_changes',
-                    { event: 'INSERT', schema: 'public', table: 'bookings' },
-                    (payload) => {
-                        unreadCount++;
-                        updateNotificationBadge(unreadCount);
-                        new Audio('assets/chime.mp3').play().catch(e => console.log('Audio blocked by browser'));
-                    }
-                )
-                .subscribe();
+            updateNotificationBadge(activeNotifications.length);
+            setupRealtimeBookingsSubscription();
+            startUpcomingBookingsWorker();
         } catch (err) {
-            console.error("Error fetching initial unread count:", err);
+            console.error("Error initializing realtime notification listeners:", err);
+            if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+                window.Sentry.captureException(err);
+            }
         }
 
         // Automatically fetch and render pending bookings for the initial view
@@ -194,6 +530,8 @@ function showToast(message) {
 // Event listener for secure logout button
 document.getElementById('logout-btn').addEventListener('click', async () => {
     try {
+        teardownRealtimeBookingsSubscription();
+        stopUpcomingBookingsWorker();
         await supabase.auth.signOut();
         document.getElementById('dashboard-container').style.display = 'none';
         document.getElementById('login-container').style.display = 'block';
@@ -201,6 +539,334 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
         console.error("Logout Error:", error.message || error);
     }
 });
+
+// --- Notification Dropdown Toggle & Outside Click Handlers ---
+const notificationIcon = document.getElementById('notification-icon');
+const notificationDropdown = document.getElementById('notification-dropdown');
+
+if (notificationIcon && notificationDropdown) {
+  notificationIcon.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = notificationDropdown.classList.toggle('active');
+    notificationDropdown.classList.toggle('open', isOpen);
+    notificationIcon.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  // Prevent clicks inside the dropdown from bubbling to document and auto-closing
+  notificationDropdown.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+
+  // Auto-collapse dropdown when tapping outside
+  document.addEventListener('click', (event) => {
+    if (notificationDropdown.classList.contains('active') || notificationDropdown.classList.contains('open')) {
+      if (!notificationDropdown.contains(event.target) && !notificationIcon.contains(event.target)) {
+        notificationDropdown.classList.remove('active', 'open');
+        notificationIcon.setAttribute('aria-expanded', 'false');
+      }
+    }
+  });
+}
+
+// --- Notification Deep-Linking & Async Element Resolver ---
+
+/**
+ * Asynchronously waits for an element matching the selector to appear in the DOM.
+ * @param {string} selector - CSS selector
+ * @param {number} timeoutMs - Maximum wait time in milliseconds
+ * @returns {Promise<HTMLElement|null>}
+ */
+function waitForElement(selector, timeoutMs = 4000) {
+  return new Promise((resolve) => {
+    const existing = document.querySelector(selector);
+    if (existing) return resolve(existing);
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        clearInterval(interval);
+        return resolve(el);
+      }
+      if (Date.now() - startTime >= timeoutMs) {
+        clearInterval(interval);
+        return resolve(null);
+      }
+    }, 100);
+  });
+}
+
+/**
+ * Initializes click delegation on the notification list for deep-linking into booking cards.
+ */
+function setupNotificationItemClickDelegation() {
+  const listContainer = document.getElementById('notification-list');
+  if (!listContainer) return;
+
+  listContainer.addEventListener('click', async (event) => {
+    const item = event.target.closest('.notification-item');
+    if (!item || item.classList.contains('dismissing-right') || item.classList.contains('swiping')) return;
+
+    try {
+      const key = item.getAttribute('data-key');
+      const bookingId = item.getAttribute('data-booking-id');
+      const targetTab = item.getAttribute('data-target-tab') || 'pending';
+      const subStatus = item.getAttribute('data-sub-status') || '';
+
+      // 1. Roll-up & collapse dropdown immediately
+      const dropdown = document.getElementById('notification-dropdown');
+      const icon = document.getElementById('notification-icon');
+      if (dropdown) dropdown.classList.remove('active', 'open');
+      if (icon) icon.setAttribute('aria-expanded', 'false');
+
+      // 2. Remove from active notifications array and re-render
+      if (key) {
+        activeNotifications = activeNotifications.filter(n => n.key !== key);
+        if (typeof renderNotificationList === 'function') {
+          renderNotificationList();
+        }
+        // 3. Persist dismissal to database
+        if (typeof persistNotificationDismissal === 'function') {
+          persistNotificationDismissal(key);
+        }
+      }
+
+      if (!bookingId) return;
+
+      // 4. Programmatically activate the target tab
+      const tabButton = document.querySelector(`.nav-tab[data-tab="${targetTab}"], button[data-tab="${targetTab}"], button[data-target="view-${targetTab}"]`);
+      if (tabButton && typeof tabButton.click === 'function') {
+        tabButton.click();
+      } else if (typeof switchTab === 'function') {
+        switchTab(targetTab);
+      }
+
+      // 5. If sub-status specified, activate sub-navigation filter pill if present
+      if (subStatus) {
+        const subFilterBtn = document.querySelector(`[data-sub-status="${subStatus}"], [data-filter="${subStatus}"]`);
+        if (subFilterBtn && typeof subFilterBtn.click === 'function') {
+          subFilterBtn.click();
+        }
+      }
+
+      // 6. Asynchronously wait for the booking card to render
+      const cardSelector = `.booking-card[data-id="${bookingId}"], .booking-card[data-booking-id="${bookingId}"]`;
+      const card = await waitForElement(cardSelector, 4000);
+
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Apply a visual highlight pulse
+        card.style.transition = 'box-shadow 0.3s ease, transform 0.3s ease';
+        card.style.boxShadow = '0 0 0 2px #3b82f6, 0 10px 25px rgba(59, 130, 246, 0.3)';
+        card.style.transform = 'scale(1.02)';
+        setTimeout(() => {
+          card.style.boxShadow = '';
+          card.style.transform = '';
+        }, 2000);
+
+        // Expand card into View B if not already expanded
+        if (typeof openBookingDetails === 'function') {
+          openBookingDetails(bookingId);
+        } else {
+          // Trigger click on expand action button or card body
+          const expandTrigger = card.querySelector('.btn-expand, .card-header, .view-details-btn, .view-a') || card;
+          if (expandTrigger && typeof expandTrigger.click === 'function') {
+            expandTrigger.click();
+          }
+        }
+      } else {
+        console.warn(`Booking card for ID ${bookingId} not found after tab switch.`);
+      }
+    } catch (err) {
+      console.error('Error handling notification item selection deep linking:', err);
+      if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+        window.Sentry.captureException(err);
+      }
+    }
+  });
+}
+
+// Wire notification item click delegation
+setupNotificationItemClickDelegation();
+
+// --- Notification Touch Swipe-to-Dismiss Gestures ---
+
+/**
+ * Attaches touch event delegation to the notification list to enable swipe-to-dismiss gestures.
+ */
+function setupNotificationSwipeGestures() {
+  const listContainer = document.getElementById('notification-list');
+  if (!listContainer) return;
+
+  let currentItem = null;
+  let startX = 0;
+  let startY = 0;
+  let deltaX = 0;
+  let isSwiping = false;
+
+  listContainer.addEventListener('touchstart', (e) => {
+    const item = e.target.closest('.notification-item');
+    if (!item) return;
+
+    currentItem = item;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    deltaX = 0;
+    isSwiping = false;
+  }, { passive: true });
+
+  listContainer.addEventListener('touchmove', (e) => {
+    if (!currentItem) return;
+
+    const moveX = e.touches[0].clientX;
+    const moveY = e.touches[0].clientY;
+    const diffX = moveX - startX;
+    const diffY = moveY - startY;
+
+    // Detect horizontal swipe intent (rightward only)
+    if (!isSwiping) {
+      if (diffX > 15 && Math.abs(diffX) > Math.abs(diffY)) {
+        isSwiping = true;
+        currentItem.classList.add('swiping');
+      }
+    }
+
+    if (isSwiping) {
+      // Prevent browser default pull-to-refresh or page scroll
+      if (e.cancelable) e.preventDefault();
+
+      deltaX = Math.max(0, diffX); // Clamp so left-swiping doesn't invert
+      currentItem.style.transform = `translateX(${deltaX}px)`;
+      currentItem.style.opacity = `${Math.max(0.15, 1 - (deltaX / 260))}`;
+    }
+  }, { passive: false });
+
+  const handleTouchEndOrCancel = () => {
+    if (!currentItem) return;
+
+    const item = currentItem;
+    const thresholdReached = isSwiping && deltaX >= 80;
+
+    item.classList.remove('swiping');
+    currentItem = null;
+    isSwiping = false;
+
+    if (thresholdReached) {
+      // 1. Trigger dismiss animation
+      item.classList.add('dismissing-right');
+      const key = item.getAttribute('data-key');
+
+      // 2. Wait for animation completion (250ms), then purge and persist
+      setTimeout(() => {
+        if (key) {
+          activeNotifications = activeNotifications.filter(n => n.key !== key);
+          if (typeof renderNotificationList === 'function') {
+            renderNotificationList();
+          }
+          if (typeof persistNotificationDismissal === 'function') {
+            persistNotificationDismissal(key);
+          }
+        }
+      }, 250);
+    } else {
+      // Snapback to original position
+      item.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+      item.style.transform = '';
+      item.style.opacity = '';
+      setTimeout(() => {
+        if (item) item.style.transition = '';
+      }, 200);
+    }
+  };
+
+  listContainer.addEventListener('touchend', handleTouchEndOrCancel, { passive: true });
+  listContainer.addEventListener('touchcancel', handleTouchEndOrCancel, { passive: true });
+}
+
+// Wire notification swipe gestures
+setupNotificationSwipeGestures();
+
+/**
+ * Fetches previously dismissed notification keys from Supabase and populates the in-memory Set.
+ */
+async function loadDismissedNotificationKeys() {
+  try {
+    const { data, error } = await supabaseBackend
+      .from('admin_notification_dismissals')
+      .select('notification_key');
+
+    if (error) {
+      console.error('Error fetching dismissed notifications from Supabase:', error);
+      if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+        window.Sentry.captureException(error);
+      }
+      return;
+    }
+
+    if (Array.isArray(data)) {
+      dismissedNotificationKeys.clear();
+      data.forEach(item => {
+        if (item.notification_key) {
+          dismissedNotificationKeys.add(item.notification_key);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Unexpected exception in loadDismissedNotificationKeys:', err);
+    if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+      window.Sentry.captureException(err);
+    }
+  }
+}
+
+// --- Notification Dismissal Persistence Helper ---
+
+/**
+ * Persists a dismissed notification key to local memory and Supabase database.
+ * @param {string} notificationKey - The composite key identifying the dismissed notification
+ * @returns {Promise<boolean>} - True if saved successfully, false otherwise
+ */
+async function persistNotificationDismissal(notificationKey) {
+  if (!notificationKey || typeof notificationKey !== 'string') {
+    return false;
+  }
+
+  try {
+    // 1. Update in-memory cache immediately
+    dismissedNotificationKeys.add(notificationKey);
+
+    if (!supabaseBackend) {
+      console.warn('Supabase client not initialized; saved dismissal only to in-memory cache.');
+      return true;
+    }
+
+    // 2. Persist to Supabase table
+    const { error } = await supabaseBackend
+      .from('admin_notification_dismissals')
+      .insert([{ notification_key: notificationKey }]);
+
+    if (error) {
+      // If code 23505 (unique violation), it was already dismissed; treat as success
+      if (error.code === '23505') {
+        return true;
+      }
+      console.error('Failed to persist notification dismissal to Supabase:', error);
+      if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+        window.Sentry.captureException(error);
+      }
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Unexpected exception in persistNotificationDismissal:', err);
+    if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+      window.Sentry.captureException(err);
+    }
+    return false;
+  }
+}
 
 /**
  * Asynchronously fetches bookings from Supabase by their status.
@@ -236,6 +902,7 @@ async function fetchBookingsByStatus(statusType, recordLimit = null) {
 document.querySelectorAll('.tab-btn').forEach(button => {
     button.addEventListener('click', async () => {
         const targetId = button.getAttribute('data-target');
+        currentTab = targetId.replace('view-', '');
         
         // Remove active class from all buttons and sections, and clear inline styles
         document.querySelectorAll('.tab-btn').forEach(btn => {
