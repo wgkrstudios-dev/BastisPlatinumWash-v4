@@ -148,8 +148,8 @@ function handleIncomingNotification(type, bookingRecord, extraData = {}) {
 
       case 'cancelled':
         text = `booking cancelled: ${customerName}`;
-        targetTab = 'confirmed';
-        subStatus = 'cancelled';
+        targetTab = 'cancelled';
+        subStatus = '';
         break;
 
       case 'reschedule_accepted':
@@ -570,33 +570,6 @@ if (notificationIcon && notificationDropdown) {
   });
 }
 
-// --- Notification Deep-Linking & Async Element Resolver ---
-
-/**
- * Asynchronously waits for an element matching the selector to appear in the DOM.
- * @param {string} selector - CSS selector
- * @param {number} timeoutMs - Maximum wait time in milliseconds
- * @returns {Promise<HTMLElement|null>}
- */
-function waitForElement(selector, timeoutMs = 4000) {
-  return new Promise((resolve) => {
-    const existing = document.querySelector(selector);
-    if (existing) return resolve(existing);
-
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const el = document.querySelector(selector);
-      if (el) {
-        clearInterval(interval);
-        return resolve(el);
-      }
-      if (Date.now() - startTime >= timeoutMs) {
-        clearInterval(interval);
-        return resolve(null);
-      }
-    }, 100);
-  });
-}
 
 /**
  * Initializes click delegation on the notification list for deep-linking into booking cards.
@@ -635,25 +608,17 @@ function setupNotificationItemClickDelegation() {
 
       if (!bookingId) return;
 
-      // 4. Programmatically activate the target tab
-      const tabButton = document.querySelector(`.nav-tab[data-tab="${targetTab}"], button[data-tab="${targetTab}"], button[data-target="view-${targetTab}"]`);
-      if (tabButton && typeof tabButton.click === 'function') {
-        tabButton.click();
-      } else if (typeof switchTab === 'function') {
-        switchTab(targetTab);
-      }
+      // 4. Programmatically activate the target tab and wait for data render
+      await activateAdminTab('view-' + targetTab);
 
-      // 5. If sub-status specified, activate sub-navigation filter pill if present
+      // 5. If sub-status specified, activate sub-navigation filter pill and wait for data render
       if (subStatus) {
-        const subFilterBtn = document.querySelector(`[data-sub-status="${subStatus}"], [data-filter="${subStatus}"]`);
-        if (subFilterBtn && typeof subFilterBtn.click === 'function') {
-          subFilterBtn.click();
-        }
+        await activateSubStatusPill(subStatus);
       }
 
-      // 6. Asynchronously wait for the booking card to render
+      // 6. Locate the rendered booking card synchronously
       const cardSelector = `.booking-card[data-id="${bookingId}"], .booking-card[data-booking-id="${bookingId}"]`;
-      const card = await waitForElement(cardSelector, 4000);
+      const card = document.querySelector(cardSelector);
 
       if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -755,12 +720,17 @@ function setupNotificationSwipeGestures() {
     isSwiping = false;
 
     if (thresholdReached) {
-      // 1. Trigger dismiss animation
+      // Trigger CSS dismissal animation
+      item.style.setProperty('--swipe-x', `${deltaX}px`);
+      item.style.setProperty('--swipe-opacity', item.style.opacity);
       item.classList.add('dismissing-right');
-      const key = item.getAttribute('data-key');
+
+      // Extract dismissal identifier
+      const notificationKey = item.getAttribute('data-key') || item.dataset?.key;
 
       // 2. Wait for animation completion (250ms), then purge and persist
       setTimeout(() => {
+        const key = notificationKey;
         if (key) {
           activeNotifications = activeNotifications.filter(n => n.key !== key);
           if (typeof renderNotificationList === 'function') {
@@ -878,8 +848,8 @@ async function reconstructActionableNotifications() {
         subStatus = 'customer_proposed';
       } else if (type === 'cancelled') {
         text = `Booking cancelled by ${customerName}`;
-        targetTab = 'confirmed';
-        subStatus = 'cancelled';
+        targetTab = 'cancelled';
+        subStatus = '';
       } else if (type === 'reschedule_accepted') {
         text = `${customerName} accepted your reschedule`;
         targetTab = 'confirmed';
@@ -987,75 +957,96 @@ async function fetchBookingsByStatus(statusType, recordLimit = null) {
     return { data, error };
 }
 
+// Standalone Tab Activation Function
+async function activateAdminTab(targetId) {
+    if (!targetId) return;
+    const button = document.querySelector(`button[data-target="${targetId}"]`);
+    currentTab = targetId.replace('view-', '');
+    
+    // Remove active class from all buttons and sections, and clear inline styles
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.background = 'transparent';
+        btn.style.color = '#a3a3ac';
+    });
+    document.querySelectorAll('.tab-content').forEach(section => {
+        section.classList.remove('active');
+        section.style.display = 'none';
+    });
+    
+    // Add active class to target button and section, and set active inline styles
+    if (button) {
+        button.classList.add('active');
+        button.style.background = 'rgba(255, 255, 255, 0.1)';
+        button.style.color = '#fff';
+    }
+    const targetSection = document.getElementById(targetId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+        targetSection.style.display = 'block';
+    }
+
+    // Fetch and render data dynamically based on the active tab
+    if (targetId === 'view-pending') {
+        try {
+            const { data, error } = await fetchBookingsByStatus('pending');
+            if (error) throw error;
+            renderPendingBookings(data);
+        } catch (err) {
+            console.error("Error loading pending bookings:", err);
+            if (window.Sentry) {
+                Sentry.captureException(err);
+            }
+            showToast("Network error: Could not load pending bookings.");
+        }
+    } else if (targetId === 'view-confirmed') {
+        try {
+            const { data, error } = await fetchBookingsByStatus('confirmed');
+            if (error) throw error;
+            renderConfirmedBookings(data);
+        } catch (err) {
+            console.error("Error loading confirmed bookings:", err);
+            if (window.Sentry) {
+                Sentry.captureException(err);
+            }
+            showToast("Network error: Could not load confirmed bookings.");
+        }
+    } else if (targetId === 'view-schedule') {
+        generateCalendar(currentMonth, currentYear);
+    } else if (targetId === 'view-completed') {
+        try {
+            completedRecordLimit = 50;
+            const { data, error } = await fetchBookingsByStatus('completed', completedRecordLimit);
+            if (error) throw error;
+            renderCompletedBookings(data);
+        } catch (err) {
+            console.error("Error loading completed bookings:", err);
+            if (window.Sentry) {
+                Sentry.captureException(err);
+            }
+            showToast("Network error: Could not load completed bookings.");
+        }
+    } else if (targetId === 'view-cancelled') {
+        try {
+            cancelledRecordLimit = 50;
+            const { data, error } = await fetchBookingsByStatus('cancelled', cancelledRecordLimit);
+            if (error) throw error;
+            renderCancelledBookings(data);
+        } catch (err) {
+            console.error("Error loading cancelled bookings:", err);
+            if (window.Sentry) {
+                Sentry.captureException(err);
+            }
+            showToast("Network error: Could not load cancelled bookings.");
+        }
+    }
+}
+
 // Universal Tab-Switching Controller
 document.querySelectorAll('.tab-btn').forEach(button => {
     button.addEventListener('click', async () => {
         const targetId = button.getAttribute('data-target');
-        currentTab = targetId.replace('view-', '');
-        
-        // Remove active class from all buttons and sections, and clear inline styles
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-            btn.style.background = 'transparent';
-            btn.style.color = '#a3a3ac';
-        });
-        document.querySelectorAll('.tab-content').forEach(section => {
-            section.classList.remove('active');
-            section.style.display = 'none';
-        });
-        
-        // Add active class to clicked button and target section, and set active inline styles
-        button.classList.add('active');
-        button.style.background = 'rgba(255, 255, 255, 0.1)';
-        button.style.color = '#fff';
-        const targetSection = document.getElementById(targetId);
-        if (targetSection) {
-            targetSection.classList.add('active');
-            targetSection.style.display = 'block';
-        }
-
-        // Fetch and render data dynamically based on the active tab
-        if (targetId === 'view-pending') {
-            try {
-                const { data, error } = await fetchBookingsByStatus('pending');
-                if (error) throw error;
-                renderPendingBookings(data);
-            } catch (err) {
-                console.error("Error loading pending bookings:", err);
-                showToast("Network error: Could not load pending bookings.");
-            }
-        } else if (targetId === 'view-confirmed') {
-            try {
-                const { data, error } = await fetchBookingsByStatus('confirmed');
-                if (error) throw error;
-                renderConfirmedBookings(data);
-            } catch (err) {
-                console.error("Error loading confirmed bookings:", err);
-                showToast("Network error: Could not load confirmed bookings.");
-            }
-        } else if (targetId === 'view-schedule') {
-            generateCalendar(currentMonth, currentYear);
-        } else if (targetId === 'view-completed') {
-            try {
-                completedRecordLimit = 50;
-                const { data, error } = await fetchBookingsByStatus('completed', completedRecordLimit);
-                if (error) throw error;
-                renderCompletedBookings(data);
-            } catch (err) {
-                console.error("Error loading completed bookings:", err);
-                showToast("Network error: Could not load completed bookings.");
-            }
-        } else if (targetId === 'view-cancelled') {
-            try {
-                cancelledRecordLimit = 50;
-                const { data, error } = await fetchBookingsByStatus('cancelled', cancelledRecordLimit);
-                if (error) throw error;
-                renderCancelledBookings(data);
-            } catch (err) {
-                console.error("Error loading cancelled bookings:", err);
-                showToast("Network error: Could not load cancelled bookings.");
-            }
-        }
+        await activateAdminTab(targetId);
     });
 });
 
@@ -1991,12 +1982,11 @@ document.getElementById('view-cancelled')?.addEventListener('click', (event) => 
     }
 });
 
-// Standalone event delegation listener for the pending sub-navigation pills
-document.getElementById('pending-sub-nav')?.addEventListener('click', async (event) => {
-    const pillBtn = event.target.closest('.pending-pill-btn');
-    if (!pillBtn) return;
+// Standalone Sub-Status Pill Activation Function
+async function activateSubStatusPill(statusString) {
+    if (!statusString) return;
 
-    event.preventDefault();
+    const pillBtn = document.querySelector(`.pending-pill-btn[data-status="${statusString}"]`);
 
     // Reset all elements with class .pending-pill-btn to inactive state
     document.querySelectorAll('.pending-pill-btn').forEach(btn => {
@@ -2005,13 +1995,12 @@ document.getElementById('pending-sub-nav')?.addEventListener('click', async (eve
         btn.style.color = '#a3a3ac';
     });
 
-    // Apply active inline styles strictly to the clicked button
-    pillBtn.style.background = 'rgba(255, 255, 255, 0.15)';
-    pillBtn.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-    pillBtn.style.color = '#ffffff';
-
-    // Extract target status string from clicked button
-    const statusString = pillBtn.getAttribute('data-status');
+    // Apply active inline styles strictly to the target button
+    if (pillBtn) {
+        pillBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+        pillBtn.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+        pillBtn.style.color = '#ffffff';
+    }
 
     // Update text content of #pending-heading based on status
     const heading = document.getElementById('pending-heading');
@@ -2031,10 +2020,21 @@ document.getElementById('pending-sub-nav')?.addEventListener('click', async (eve
         if (error) throw error;
         renderPendingBookings(data);
     } catch (err) {
-        Sentry.captureException(err);
+        if (window.Sentry) {
+            Sentry.captureException(err);
+        }
         console.error("Error loading bookings by status:", err);
         showToast("Network error: Could not load bookings.");
     }
+}
+
+// Standalone event delegation listener for the pending sub-navigation pills
+document.getElementById('pending-sub-nav')?.addEventListener('click', async (event) => {
+    const pillBtn = event.target.closest('.pending-pill-btn');
+    if (!pillBtn) return;
+
+    event.preventDefault();
+    await activateSubStatusPill(pillBtn.getAttribute('data-status'));
 });
 
 

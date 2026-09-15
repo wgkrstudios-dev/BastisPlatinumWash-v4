@@ -1451,27 +1451,18 @@ a,
 @keyframes notificationDismissRight {
   0% {
     transform: translateX(var(--swipe-x, 0));
-    opacity: 1;
+    opacity: var(--swipe-opacity, 1);
     max-height: 80px;
     margin-bottom: 0;
-    padding-top: 0.85rem;
-    padding-bottom: 0.85rem;
-  }
-  60% {
-    transform: translateX(110%);
-    opacity: 0;
-    max-height: 80px;
-    margin-bottom: 0;
-    padding-top: 0.85rem;
-    padding-bottom: 0.85rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
   }
   100% {
-    transform: translateX(110%);
+    transform: translateX(120%);
     opacity: 0;
     max-height: 0;
     margin-bottom: 0;
     padding-top: 0;
     padding-bottom: 0;
-    border-bottom: none;
   }
 }
