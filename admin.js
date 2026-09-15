@@ -408,6 +408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('dashboard-container').style.display = 'block';
 
             await loadDismissedNotificationKeys();
+            await reconstructActionableNotifications();
 
             // Automatically fetch and render the initial pending bookings
             const { data: pendingData, error: pendingError } = await fetchBookingsByStatus('pending');
@@ -456,6 +457,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         document.getElementById('dashboard-container').style.display = 'block';
 
         await loadDismissedNotificationKeys();
+        await reconstructActionableNotifications();
 
         try {
             updateNotificationBadge(activeNotifications.length);
@@ -816,6 +818,93 @@ async function loadDismissedNotificationKeys() {
     console.error('Unexpected exception in loadDismissedNotificationKeys:', err);
     if (window.Sentry && typeof window.Sentry.captureException === 'function') {
       window.Sentry.captureException(err);
+    }
+  }
+}
+
+/**
+ * Reconstructs actionable notifications from bookings in Supabase.
+ */
+async function reconstructActionableNotifications() {
+  try {
+    const { data, error } = await supabaseBackend
+      .from('bookings')
+      .select('*')
+      .in('booking_status', ['pending', 'customer_proposed', 'cancelled', 'confirmed'])
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    const bookings = data || [];
+    for (const booking of bookings) {
+      let type;
+      if (booking.booking_status === 'pending') {
+        type = 'pending';
+      } else if (booking.booking_status === 'customer_proposed') {
+        type = 'customer_proposed';
+      } else if (booking.booking_status === 'cancelled') {
+        type = 'cancelled';
+      } else if (booking.booking_status === 'confirmed' && booking.reschedule_accepted === true) {
+        type = 'reschedule_accepted';
+      } else {
+        continue;
+      }
+
+      const key = `${type}:${booking.id}`;
+
+      if (dismissedNotificationKeys.has(key)) {
+        continue;
+      }
+
+      if (activeNotifications.some(n => n.key === key)) {
+        continue;
+      }
+
+      const customerName = booking.customer_name || booking.customer_email || 'Customer';
+
+      let text = '';
+      let targetTab = '';
+      let subStatus = '';
+
+      if (type === 'pending') {
+        text = `New booking from ${customerName}`;
+        targetTab = 'pending';
+        subStatus = '';
+      } else if (type === 'customer_proposed') {
+        text = `${customerName} proposed a new time`;
+        targetTab = 'pending';
+        subStatus = 'customer_proposed';
+      } else if (type === 'cancelled') {
+        text = `Booking cancelled by ${customerName}`;
+        targetTab = 'confirmed';
+        subStatus = 'cancelled';
+      } else if (type === 'reschedule_accepted') {
+        text = `${customerName} accepted your reschedule`;
+        targetTab = 'confirmed';
+        subStatus = '';
+      }
+
+      const notification = {
+        key: key,
+        bookingId: booking.id,
+        targetTab: targetTab,
+        subStatus: subStatus,
+        text: text,
+        timestamp: booking.updated_at || booking.created_at || new Date().toISOString()
+      };
+
+      activeNotifications.unshift(notification);
+    }
+
+    renderNotificationList();
+    updateNotificationBadge(activeNotifications.length);
+  } catch (err) {
+    if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+      Sentry.captureException(err);
+    } else {
+      console.error('Error reconstructing notifications:', err);
     }
   }
 }
