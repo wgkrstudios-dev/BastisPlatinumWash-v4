@@ -1303,7 +1303,10 @@ function renderConfirmedBookings(data) {
                         <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
                     </div>
                     <div class="action-buttons">
-                        <button class="btn-complete">Mark as Completed</button>
+                        <button class="btn-complete btn-confirm">Booking Completed</button>
+                        <button class="btn-propose">Propose Time</button>
+                        <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
+                        <button class="btn-cancel">Cancel</button>
                     </div>
                 </div>
             `;
@@ -1546,6 +1549,9 @@ document.getElementById('ptbm-form')?.addEventListener('submit', async (event) =
         const updatedBookings = await fetchBookingsByStatus('admin_proposed');
         if (updatedBookings.error) throw updatedBookings.error;
         renderPendingBookings(updatedBookings.data);
+
+        const confirmedData = await fetchBookingsByStatus('confirmed');
+        renderConfirmedBookings(confirmedData.data);
     } catch (err) {
         Sentry.captureException(err);
         console.error("Propose time submit error:", err);
@@ -1610,6 +1616,123 @@ document.getElementById('view-confirmed')?.addEventListener('click', async (even
                 card.classList.remove('expanded');
             }
         }
+    }
+});
+
+// Standalone event listener for Cancel Action on #view-confirmed
+document.getElementById('view-confirmed')?.addEventListener('click', async (event) => {
+    const btnCancel = event.target.closest('.btn-cancel');
+    if (!btnCancel) return;
+
+    const card = event.target.closest('.booking-card');
+    if (!card) return;
+    const bookingId = card.getAttribute('data-id');
+    if (!bookingId) return;
+
+    // UI Interaction State
+    btnCancel.disabled = true;
+    btnCancel.innerText = 'Cancelling...';
+
+    // Ensure supabaseClient is available
+    if (typeof supabaseClient === 'undefined') {
+        window.supabaseClient = typeof supabaseBackend !== 'undefined' ? supabaseBackend : window.supabase;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('bookings')
+            .update({ booking_status: 'cancelled' })
+            .eq('id', bookingId);
+
+        if (error) throw error;
+
+        showToast('Booking cancelled.', 'success');
+
+        const confirmedData = await fetchBookingsByStatus('confirmed');
+        renderConfirmedBookings(confirmedData.data);
+
+        const cancelledData = await fetchBookingsByStatus('cancelled');
+        renderCancelledBookings(cancelledData.data);
+    } catch (err) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(err);
+        }
+        console.error('Error cancelling confirmed booking:', err);
+        showToast('Failed to cancel booking. Please try again.', 'error');
+        btnCancel.disabled = false;
+        btnCancel.innerText = 'Cancel';
+    }
+});
+
+// Standalone event listener for Propose Time Action on #view-confirmed
+document.getElementById('view-confirmed')?.addEventListener('click', (e) => {
+    const btnPropose = e.target.closest('.btn-propose');
+    if (!btnPropose) return;
+
+    const card = e.target.closest('.booking-card');
+    if (!card) return;
+    const bookingId = card.getAttribute('data-id');
+    if (!bookingId) return;
+
+    activeBookingIdForProposal = bookingId;
+
+    const dateInput = document.getElementById('ptbm-date');
+    const timeInput = document.getElementById('ptbm-time');
+    const messageInput = document.getElementById('ptbm-message');
+    const overlay = document.getElementById('ptbm-overlay');
+
+    const timeEl = card.querySelector('.booking-time');
+    if (timeEl && dateInput && timeInput) {
+        try {
+            const rawText = timeEl.innerText || '';
+            let datePart = '';
+            let timePart = '';
+
+            if (rawText.includes(' at ')) {
+                const parts = rawText.split(' at ');
+                datePart = parts[0];
+                timePart = parts[1] || '';
+            } else if (rawText.includes(',')) {
+                const parts = rawText.split(',');
+                datePart = parts[0];
+                timePart = parts[1] || '';
+            } else {
+                datePart = rawText;
+            }
+
+            const dateSegment = datePart.replace('Booking Time:', '').trim();
+            const timeSegment = timePart.trim();
+
+            const d = new Date(dateSegment);
+            if (!isNaN(d.getTime())) {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                dateInput.value = `${year}-${month}-${day}`;
+            }
+
+            const timePattern = /^([01]\d|2[0-3]):?([0-5]\d)$/;
+            if (timePattern.test(timeSegment)) {
+                timeInput.value = timeSegment;
+            }
+        } catch (parseErr) {
+            if (typeof Sentry !== 'undefined') {
+                Sentry.captureException(parseErr);
+            }
+            console.warn('Failed to parse booking time:', parseErr);
+        }
+    }
+
+    if (messageInput) {
+        messageInput.value = '';
+    }
+
+    if (overlay) {
+        overlay.style.display = 'flex';
+        overlay.classList.remove('hidden');
+        setTimeout(() => {
+            overlay.classList.add('active');
+        }, 10);
     }
 });
 
