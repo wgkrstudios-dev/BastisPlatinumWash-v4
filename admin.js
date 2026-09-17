@@ -1760,6 +1760,282 @@ const monthNames = [
     "July", "August", "September", "October", "November", "December"
 ];
 
+async function fetchConfirmedBookingsForDate(dateString) {
+  if (!dateString || typeof dateString !== 'string') {
+    return [];
+  }
+
+  try {
+    const dayStart = `${dateString}T00:00:00`;
+    const dayEnd = `${dateString}T23:59:59.999`;
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('booking_status', 'confirmed')
+      .gte('booking_date_time', dayStart)
+      .lte('booking_date_time', dayEnd)
+      .order('booking_date_time', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (err) {
+    if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+      Sentry.captureException(err);
+    }
+    console.error('Error fetching confirmed bookings for date:', err);
+    return [];
+  }
+}
+
+/**
+ * Renders confirmed bookings into Schedule Modal A (sm:A).
+ * @param {string} dateString - Format: 'YYYY-MM-DD'
+ * @param {Array} bookingsData - Array of booking records from Supabase
+ */
+function renderScheduleModalA(dateString, bookingsData) {
+  const titleEl = document.getElementById('sma-date-title');
+  const slotsContainer = document.getElementById('sma-time-slots');
+
+  if (!slotsContainer) {
+    console.error('Schedule Modal A container (#sma-time-slots) not found in DOM.');
+    return;
+  }
+
+  // Format and display the selected date in header
+  if (titleEl && dateString) {
+    try {
+      const parsedDate = new Date(`${dateString}T00:00:00`);
+      titleEl.textContent = parsedDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch {
+      titleEl.textContent = dateString;
+    }
+  }
+
+  // Clear previous content
+  slotsContainer.innerHTML = '';
+
+  // Empty state handling
+  if (!bookingsData || !Array.isArray(bookingsData) || bookingsData.length === 0) {
+    slotsContainer.innerHTML = `
+      <div class="sma-empty-state">
+        <p>No bookings scheduled for this date.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Render vertical time slots
+  const cardsHtml = bookingsData.map(booking => {
+    let formattedTime = 'Time not set';
+    if (booking.booking_date_time) {
+      try {
+        const dt = new Date(booking.booking_date_time);
+        formattedTime = dt.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+      } catch {
+        formattedTime = booking.booking_date_time;
+      }
+    }
+
+    const customerName = booking.full_name || booking.name || 'Customer';
+
+    // Format vehicle summary
+    let vehicleSummary = '1 Vehicle';
+    if (Array.isArray(booking.vehicles) && booking.vehicles.length > 0) {
+      vehicleSummary = `${booking.vehicles.length} Vehicle${booking.vehicles.length > 1 ? 's' : ''}`;
+    } else if (booking.vehicle_make || booking.vehicle_model) {
+      vehicleSummary = `${booking.vehicle_make || ''} ${booking.vehicle_model || ''}`.trim();
+    } else if (booking.vehicle_type) {
+      vehicleSummary = booking.vehicle_type;
+    }
+
+    return `
+      <div class="sma-time-slot-card" data-booking-id="${booking.id}" role="button" tabindex="0">
+        <span class="sma-slot-time">${formattedTime}</span>
+        <div class="sma-slot-info">
+          <span class="sma-slot-name">${customerName}</span>
+          <span class="sma-slot-vehicles">${vehicleSummary}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  slotsContainer.innerHTML = cardsHtml;
+}
+
+/**
+ * Renders detailed booking information into Schedule Modal B (sm:B).
+ * @param {Object} bookingRecord - The selected booking record from Supabase
+ */
+function renderScheduleModalB(bookingRecord) {
+  if (!bookingRecord || typeof bookingRecord !== 'object') {
+    console.error('Invalid booking record provided to renderScheduleModalB.');
+    return;
+  }
+
+  const detailsContainer = document.getElementById('smb-details');
+  const goToBookingBtn = document.getElementById('smb-go-to-booking-btn');
+
+  if (!detailsContainer) {
+    console.error('Schedule Modal B container (#smb-details) not found in DOM.');
+    return;
+  }
+
+  // Bind the active booking ID to the Go to Booking button for Phase 6 navigation
+  if (goToBookingBtn && bookingRecord.id) {
+    goToBookingBtn.setAttribute('data-booking-id', bookingRecord.id);
+  }
+
+  // Format date and time
+  let formattedDateTime = 'N/A';
+  if (bookingRecord.booking_date_time) {
+    try {
+      const dt = new Date(bookingRecord.booking_date_time);
+      formattedDateTime = dt.toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch {
+      formattedDateTime = bookingRecord.booking_date_time;
+    }
+  }
+
+  // Customer details
+  const customerName = bookingRecord.full_name || bookingRecord.name || bookingRecord.customer_name || 'N/A';
+  const customerPhone = bookingRecord.phone || bookingRecord.customer_phone || 'N/A';
+  const customerEmail = bookingRecord.email || bookingRecord.customer_email || 'N/A';
+  const customerAddress = bookingRecord.address || bookingRecord.service_address || 'N/A';
+
+  // Vehicles breakdown parsing
+  let vehiclesList = [];
+  if (Array.isArray(bookingRecord.vehicles)) {
+    vehiclesList = bookingRecord.vehicles;
+  } else if (typeof bookingRecord.vehicles === 'string') {
+    try {
+      const parsed = JSON.parse(bookingRecord.vehicles);
+      if (Array.isArray(parsed)) vehiclesList = parsed;
+    } catch {
+      vehiclesList = [];
+    }
+  }
+
+  let vehiclesHtml = '';
+  if (vehiclesList.length > 0) {
+    vehiclesHtml = vehiclesList.map((veh, index) => {
+      const vehTitle = `${veh.make || veh.vehicle_make || ''} ${veh.model || veh.vehicle_model || ''}`.trim() || `Vehicle #${index + 1}`;
+      const vehPackage = veh.package || veh.service_package || veh.service || 'Standard Wash';
+      let vehPrice = '';
+      if (veh.price !== undefined && veh.price !== null && veh.price !== '') {
+        const parsedVeh = parseFloat(veh.price);
+        if (!isNaN(parsedVeh)) {
+          vehPrice = `$${parsedVeh.toFixed(2)}`;
+        }
+      }
+      return `
+        <div class="smb-row">
+          <span class="smb-label">${vehTitle}</span>
+          <span class="smb-value">${vehPackage} ${vehPrice ? `(${vehPrice})` : ''}</span>
+        </div>
+      `;
+    }).join('');
+  } else {
+    const singleVehTitle = `${bookingRecord.vehicle_make || ''} ${bookingRecord.vehicle_model || ''}`.trim() || bookingRecord.vehicle_type || 'Vehicle 1';
+    const singlePackage = bookingRecord.service_name || bookingRecord.service_package || bookingRecord.package || 'Standard Wash';
+    vehiclesHtml = `
+      <div class="smb-row">
+        <span class="smb-label">${singleVehTitle}</span>
+        <span class="smb-value">${singlePackage}</span>
+      </div>
+    `;
+  }
+
+  // Total price formatting (with NaN safeguard)
+  let formattedTotal = 'N/A';
+  const rawPrice = bookingRecord.total_price !== undefined && bookingRecord.total_price !== null 
+    ? bookingRecord.total_price 
+    : bookingRecord.price;
+  if (rawPrice !== undefined && rawPrice !== null && rawPrice !== '') {
+    const parsedPrice = parseFloat(rawPrice);
+    if (!isNaN(parsedPrice)) {
+      formattedTotal = `$${parsedPrice.toFixed(2)}`;
+    }
+  }
+
+  // Notes/instructions
+  const notes = bookingRecord.notes || bookingRecord.special_instructions || bookingRecord.comments || null;
+
+  // Assemble HTML
+  detailsContainer.innerHTML = `
+    <!-- Customer Info Section -->
+    <div class="smb-section">
+      <div class="smb-section-title">Customer Information</div>
+      <div class="smb-row">
+        <span class="smb-label">Name</span>
+        <span class="smb-value">${customerName}</span>
+      </div>
+      <div class="smb-row">
+        <span class="smb-label">Phone</span>
+        <span class="smb-value">${customerPhone}</span>
+      </div>
+      <div class="smb-row">
+        <span class="smb-label">Email</span>
+        <span class="smb-value">${customerEmail}</span>
+      </div>
+    </div>
+
+    <!-- Appointment & Address Section -->
+    <div class="smb-section">
+      <div class="smb-section-title">Appointment & Location</div>
+      <div class="smb-row">
+        <span class="smb-label">Scheduled Time</span>
+        <span class="smb-value">${formattedDateTime}</span>
+      </div>
+      <div class="smb-row">
+        <span class="smb-label">Address</span>
+        <span class="smb-value">${customerAddress}</span>
+      </div>
+    </div>
+
+    <!-- Vehicle & Service Breakdown -->
+    <div class="smb-section">
+      <div class="smb-section-title">Vehicles & Services</div>
+      ${vehiclesHtml}
+    </div>
+
+    <!-- Payment & Notes Section -->
+    <div class="smb-section">
+      <div class="smb-section-title">Payment & Notes</div>
+      <div class="smb-row">
+        <span class="smb-label">Total Amount</span>
+        <span class="smb-value" style="font-weight: 700; color: #4ade80;">${formattedTotal}</span>
+      </div>
+      ${notes ? `
+        <div class="smb-row" style="flex-direction: column; gap: 0.25rem; align-items: flex-start;">
+          <span class="smb-label">Special Notes</span>
+          <span class="smb-value" style="text-align: left; font-size: 0.8rem; color: var(--text-secondary);">${notes}</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
 /**
  * Generates and renders a monthly calendar view populated with confirmed bookings.
  * 
@@ -1794,6 +2070,9 @@ async function generateCalendar(month, year) {
         const dayCell = document.createElement('div');
         dayCell.className = 'calendar-day';
         dayCell.setAttribute('data-day', day);
+        const formattedMonth = String(month + 1).padStart(2, '0');
+        const formattedDay = String(day).padStart(2, '0');
+        dayCell.setAttribute('data-date', `${year}-${formattedMonth}-${formattedDay}`);
         Object.assign(dayCell.style, {
             minHeight: '80px',
             border: '1px solid rgba(255,255,255,0.1)',
@@ -1880,6 +2159,278 @@ document.getElementById('next-month')?.addEventListener('click', () => {
     }
     generateCalendar(currentMonth, currentYear);
 });
+
+// Event delegation for calendar day clicks to open Schedule Modal A
+const calendarGridEl = document.getElementById('calendar-grid');
+if (calendarGridEl) {
+  calendarGridEl.addEventListener('click', async (e) => {
+    const dayEl = e.target.closest('.calendar-day');
+    if (!dayEl) return;
+
+    // 1. Extract the specific date string from the clicked day element
+    let dateString = dayEl.dataset.date || dayEl.getAttribute('data-date');
+    if (!dateString) {
+      const day = dayEl.getAttribute('data-day') || dayEl.dataset.day;
+      if (day && typeof currentYear !== 'undefined' && typeof currentMonth !== 'undefined') {
+        const formattedMonth = String(currentMonth + 1).padStart(2, '0');
+        const formattedDay = String(day).padStart(2, '0');
+        dateString = `${currentYear}-${formattedMonth}-${formattedDay}`;
+      }
+    }
+    if (!dateString) {
+      return;
+    }
+
+    try {
+      // 2. Await the confirmed bookings for the selected date
+      const bookingsData = await fetchConfirmedBookingsForDate(dateString);
+
+      // Cache bookings in memory for sm:B lookup in Phase 5
+      window.currentScheduleBookings = bookingsData;
+
+      // 3. Render the returned data into Schedule Modal A
+      renderScheduleModalA(dateString, bookingsData);
+
+      // 4. Change CSS display property of the sm:A overlay to make it visible
+      const smaOverlay = document.getElementById('sma-overlay');
+      if (smaOverlay) {
+        smaOverlay.classList.remove('hidden');
+        smaOverlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    } catch (err) {
+      if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+        Sentry.captureException(err);
+      }
+      console.error('Error opening Schedule Modal A for date:', dateString, err);
+    }
+  });
+}
+
+// Event delegation for time slot clicks in Schedule Modal A to open Schedule Modal B
+const smaTimeSlotsContainer = document.getElementById('sma-time-slots');
+if (smaTimeSlotsContainer) {
+  smaTimeSlotsContainer.addEventListener('click', (e) => {
+    const slotCard = e.target.closest('.sma-time-slot-card');
+    if (!slotCard) return;
+
+    // 1. Extract the booking ID from the clicked slot card
+    const bookingId = slotCard.dataset.bookingId || slotCard.getAttribute('data-booking-id');
+    if (!bookingId) {
+      console.warn('Clicked time slot element has no data-booking-id attribute.');
+      return;
+    }
+
+    // 2. Locate the corresponding booking record from the cached array
+    let matchedBooking = null;
+    if (Array.isArray(window.currentScheduleBookings)) {
+      matchedBooking = window.currentScheduleBookings.find(b => String(b.id) === String(bookingId));
+    }
+
+    // Fallback search in global bookings cache if available
+    if (!matchedBooking && Array.isArray(window.allBookings)) {
+      matchedBooking = window.allBookings.find(b => String(b.id) === String(bookingId));
+    }
+
+    if (!matchedBooking) {
+      console.error('Could not locate booking record for ID:', bookingId);
+      return;
+    }
+
+    try {
+      // 3. Render the booking data into Schedule Modal B
+      renderScheduleModalB(matchedBooking);
+
+      // 4. Change CSS display property of sm:B overlay to make it visible
+      const smbOverlay = document.getElementById('smb-overlay');
+      if (smbOverlay) {
+        smbOverlay.classList.remove('hidden');
+        smbOverlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    } catch (err) {
+      if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+        Sentry.captureException(err);
+      }
+      console.error('Error rendering and displaying Schedule Modal B:', err);
+    }
+  });
+}
+
+// Handle "Go to Booking" navigation from Schedule Modal B to Bookings view
+const smbGoToBookingBtn = document.getElementById('smb-go-to-booking-btn');
+if (smbGoToBookingBtn) {
+  smbGoToBookingBtn.addEventListener('click', async () => {
+    const bookingId = smbGoToBookingBtn.dataset.bookingId || smbGoToBookingBtn.getAttribute('data-booking-id');
+    if (!bookingId) {
+      console.warn('No booking ID associated with #smb-go-to-booking-btn.');
+      return;
+    }
+
+    // 1. Dismiss both Schedule Modal B and Schedule Modal A
+    const smbOverlay = document.getElementById('smb-overlay');
+    if (smbOverlay) {
+      smbOverlay.classList.add('hidden');
+      smbOverlay.style.display = 'none';
+    }
+
+    const smaOverlay = document.getElementById('sma-overlay');
+    if (smaOverlay) {
+      smaOverlay.classList.add('hidden');
+      smaOverlay.style.display = 'none';
+    }
+
+    // Restore body scrolling
+    document.body.style.overflow = '';
+    if (typeof updateBodyScrollLock === 'function') {
+      updateBodyScrollLock();
+    }
+
+    // 2. Navigate to the Bookings tab
+    if (typeof activateAdminTab === 'function') {
+      await activateAdminTab('view-confirmed');
+    } else if (typeof switchTab === 'function') {
+      switchTab('bookings');
+    } else {
+      const bookingsTabBtn = document.querySelector('[data-target="view-confirmed"]') || 
+                             document.querySelector('[data-tab="bookings"]') || 
+                             document.getElementById('tab-bookings') || 
+                             document.querySelector('.nav-tab[data-tab="bookings"]');
+      if (bookingsTabBtn) {
+        bookingsTabBtn.click();
+      }
+    }
+
+    // 3. Highlight and scroll the specific booking item into view
+    setTimeout(() => {
+      // Look for the booking element in the main bookings list (avoiding modal elements)
+      const bookingCard = document.querySelector(`.bookings-list [data-booking-id="${bookingId}"], #bookings-container [data-booking-id="${bookingId}"], .booking-card[data-id="${bookingId}"], [data-id="${bookingId}"]`);
+      if (bookingCard) {
+        bookingCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        bookingCard.classList.add('highlight-booking');
+        
+        // Expand card into view-b if present
+        const viewB = bookingCard.querySelector('.view-b');
+        if (viewB && viewB.style.display === 'none') {
+          viewB.style.display = 'block';
+          bookingCard.classList.add('expanded');
+        }
+
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          bookingCard.classList.remove('highlight-booking');
+        }, 3000);
+      }
+    }, 150);
+  });
+}
+
+// ==========================================================================
+// Schedule Modals (sm:A & sm:B) Dismissal & Close Handlers
+// ==========================================================================
+
+let closeScheduleModalB = function() {
+  const smbOverlay = document.getElementById('smb-overlay');
+  if (smbOverlay) {
+    smbOverlay.classList.add('hidden');
+    smbOverlay.style.display = 'none';
+  }
+};
+
+let closeScheduleModalA = function() {
+  const smaOverlay = document.getElementById('sma-overlay');
+  if (smaOverlay) {
+    smaOverlay.classList.add('hidden');
+    smaOverlay.style.display = 'none';
+  }
+};
+
+// 1. Close sm:B via close button
+const smbCloseBtn = document.getElementById('smb-close-btn');
+if (smbCloseBtn) {
+  smbCloseBtn.addEventListener('click', () => {
+    closeScheduleModalB();
+  });
+}
+
+// 2. Close sm:B via overlay backdrop click
+const smbOverlayEl = document.getElementById('smb-overlay');
+if (smbOverlayEl) {
+  smbOverlayEl.addEventListener('click', (e) => {
+    if (e.target === smbOverlayEl) {
+      closeScheduleModalB();
+    }
+  });
+}
+
+// 3. Close sm:A via close button
+const smaCloseBtn = document.getElementById('sma-close-btn');
+if (smaCloseBtn) {
+  smaCloseBtn.addEventListener('click', () => {
+    closeScheduleModalA();
+  });
+}
+
+// 4. Close sm:A via overlay backdrop click
+const smaOverlayEl = document.getElementById('sma-overlay');
+if (smaOverlayEl) {
+  smaOverlayEl.addEventListener('click', (e) => {
+    if (e.target === smaOverlayEl) {
+      closeScheduleModalA();
+    }
+  });
+}
+
+// 5. Hierarchical Escape key listener
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const smbOverlay = document.getElementById('smb-overlay');
+    const isSmbOpen = smbOverlay && !smbOverlay.classList.contains('hidden') && smbOverlay.style.display !== 'none';
+
+    if (isSmbOpen) {
+      closeScheduleModalB();
+      return;
+    }
+
+    const smaOverlay = document.getElementById('sma-overlay');
+    const isSmaOpen = smaOverlay && !smaOverlay.classList.contains('hidden') && smaOverlay.style.display !== 'none';
+
+    if (isSmaOpen) {
+      closeScheduleModalA();
+    }
+  }
+});
+
+// ==========================================================================
+// Phase 6 Step 4: Modal UX Polish - Body Scroll Locking & State Management
+// ==========================================================================
+
+function updateBodyScrollLock() {
+  const smaOverlay = document.getElementById('sma-overlay');
+  const smbOverlay = document.getElementById('smb-overlay');
+
+  const isSmaOpen = smaOverlay && !smaOverlay.classList.contains('hidden') && smaOverlay.style.display !== 'none';
+  const isSmbOpen = smbOverlay && !smbOverlay.classList.contains('hidden') && smbOverlay.style.display !== 'none';
+
+  if (isSmaOpen || isSmbOpen) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+}
+
+// Hook updateBodyScrollLock into closeScheduleModalA and closeScheduleModalB
+const originalCloseScheduleModalA = closeScheduleModalA;
+closeScheduleModalA = function() {
+  originalCloseScheduleModalA();
+  updateBodyScrollLock();
+};
+
+const originalCloseScheduleModalB = closeScheduleModalB;
+closeScheduleModalB = function() {
+  originalCloseScheduleModalB();
+  updateBodyScrollLock();
+};
 
 // Completed bookings pagination limit
 let completedRecordLimit = 50;

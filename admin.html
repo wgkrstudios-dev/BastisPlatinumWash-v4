@@ -144,6 +144,41 @@
         </div>
     </div>
 
+    <!-- Schedule Modal A (sm:A) Overlay -->
+    <div class="sma-overlay hidden" id="sma-overlay" role="dialog" aria-modal="true" aria-labelledby="sma-date-title">
+        <div class="sma-modal-container">
+            <div class="sma-header">
+                <div class="sma-title-group">
+                    <span class="sma-tag">Schedule</span>
+                    <h3 class="sma-date-title" id="sma-date-title">Date</h3>
+                </div>
+                <button type="button" class="sma-close-btn" id="sma-close-btn" aria-label="Close Schedule Modal A">&times;</button>
+            </div>
+            <div class="sma-body">
+                <div class="sma-time-slots" id="sma-time-slots"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Modal B (sm:B) Overlay - Detailed Booking Breakdown -->
+    <div class="smb-overlay hidden" id="smb-overlay" role="dialog" aria-modal="true" aria-labelledby="smb-title">
+        <div class="smb-modal-container">
+            <div class="smb-header">
+                <div class="smb-title-group">
+                    <span class="smb-tag">Booking Overview</span>
+                    <h3 class="smb-title" id="smb-title">Booking Details</h3>
+                </div>
+                <button type="button" class="smb-close-btn" id="smb-close-btn" aria-label="Close Schedule Modal B">&times;</button>
+            </div>
+            <div class="smb-body">
+                <div class="smb-details" id="smb-details"></div>
+            </div>
+            <div class="smb-footer">
+                <button type="button" class="btn-primary smb-go-to-booking-btn" id="smb-go-to-booking-btn">Go to Booking</button>
+            </div>
+        </div>
+    </div>
+
     <script src="admin.js"></script>
 </body>
 
