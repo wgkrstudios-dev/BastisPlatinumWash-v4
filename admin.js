@@ -1849,7 +1849,7 @@ function renderScheduleModalA(dateString, bookingsData) {
       }
     }
 
-    const customerName = booking.full_name || booking.name || 'Customer';
+    const customerName = booking.customer_name || booking.full_name || booking.name || 'Customer';
 
     // Format vehicle summary
     let vehicleSummary = '1 Vehicle';
@@ -1898,20 +1898,25 @@ function renderScheduleModalB(bookingRecord) {
     goToBookingBtn.setAttribute('data-booking-id', bookingRecord.id);
   }
 
-  // Format date and time
+  // Format date and time: 'Tue, 22 Sep 2026, 05:38 PM'
   let formattedDateTime = 'N/A';
   if (bookingRecord.booking_date_time) {
     try {
       const dt = new Date(bookingRecord.booking_date_time);
-      formattedDateTime = dt.toLocaleString('en-US', {
+      const formatter = new Intl.DateTimeFormat('en-US', {
         weekday: 'short',
-        month: 'short',
         day: 'numeric',
+        month: 'short',
         year: 'numeric',
-        hour: 'numeric',
+        hour: '2-digit',
         minute: '2-digit',
         hour12: true
       });
+      const parts = {};
+      formatter.formatToParts(dt).forEach(p => {
+        parts[p.type] = p.value;
+      });
+      formattedDateTime = `${parts.weekday}, ${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} ${parts.dayPeriod}`;
     } catch {
       formattedDateTime = bookingRecord.booking_date_time;
     }
@@ -1921,7 +1926,7 @@ function renderScheduleModalB(bookingRecord) {
   const customerName = bookingRecord.full_name || bookingRecord.name || bookingRecord.customer_name || 'N/A';
   const customerPhone = bookingRecord.phone || bookingRecord.customer_phone || 'N/A';
   const customerEmail = bookingRecord.email || bookingRecord.customer_email || 'N/A';
-  const customerAddress = bookingRecord.address || bookingRecord.service_address || 'N/A';
+  const customerAddress = bookingRecord.customer_address || 'N/A';
 
   // Vehicles breakdown parsing
   let vehiclesList = [];
@@ -1945,7 +1950,7 @@ function renderScheduleModalB(bookingRecord) {
       if (veh.price !== undefined && veh.price !== null && veh.price !== '') {
         const parsedVeh = parseFloat(veh.price);
         if (!isNaN(parsedVeh)) {
-          vehPrice = `$${parsedVeh.toFixed(2)}`;
+          vehPrice = `R${parsedVeh.toFixed(2)}`;
         }
       }
       return `
@@ -1974,7 +1979,7 @@ function renderScheduleModalB(bookingRecord) {
   if (rawPrice !== undefined && rawPrice !== null && rawPrice !== '') {
     const parsedPrice = parseFloat(rawPrice);
     if (!isNaN(parsedPrice)) {
-      formattedTotal = `$${parsedPrice.toFixed(2)}`;
+      formattedTotal = `R${parsedPrice.toFixed(2)}`;
     }
   }
 
@@ -2021,7 +2026,7 @@ function renderScheduleModalB(bookingRecord) {
 
     <!-- Payment & Notes Section -->
     <div class="smb-section">
-      <div class="smb-section-title">Payment & Notes</div>
+      <div class="smb-section-title">Booking Value</div>
       <div class="smb-row">
         <span class="smb-label">Total Amount</span>
         <span class="smb-value" style="font-weight: 700; color: #4ade80;">${formattedTotal}</span>
