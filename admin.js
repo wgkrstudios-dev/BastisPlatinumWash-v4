@@ -2617,6 +2617,11 @@ function renderCancelledBookings(data) {
                         ${getVehicleBreakdownHTML(booking)}
                         <p><strong>Total Price:</strong> R${booking.total_price || '0.00'}</p>
                     </div>
+                    <div class="action-buttons">
+                        <a href="tel:${booking.customer_phone || ''}" class="btn-call" style="display: flex; align-items: center; justify-content: center; text-decoration: none; text-align: center; flex: 1; min-height: 44px; box-sizing: border-box; border-radius: var(--border-radius-md); font-size: 0.85rem; font-weight: 600; font-family: var(--font-family);">Call Customer</a>
+                        <button class="btn-restore">Restore to Pending</button>
+                        <button class="btn-delete-perm">Permanently Delete</button>
+                    </div>
                 </div>
             `;
 
@@ -2658,6 +2663,90 @@ document.getElementById('view-cancelled')?.addEventListener('click', (event) => 
                 card.classList.remove('expanded');
             }
         }
+    }
+});
+
+// Standalone event delegation listener on #view-cancelled for Restore to Pending action
+document.getElementById('view-cancelled')?.addEventListener('click', async (event) => {
+    const btnRestore = event.target.closest('.btn-restore');
+    if (!btnRestore) return;
+
+    const card = btnRestore.closest('.booking-card');
+    if (!card) return;
+    const bookingId = card.getAttribute('data-id');
+    if (!bookingId) return;
+
+    const originalText = btnRestore.innerText || 'Restore to Pending';
+    btnRestore.disabled = true;
+    btnRestore.innerText = 'Restoring...';
+
+    const client = typeof supabaseBackend !== 'undefined' ? supabaseBackend : window.supabase;
+
+    try {
+        const { error } = await client
+            .from('bookings')
+            .update({ booking_status: 'pending' })
+            .eq('id', bookingId);
+
+        if (error) throw error;
+
+        showToast("Booking restored to pending successfully.", "success");
+
+        const cancelledData = await fetchBookingsByStatus('cancelled', cancelledRecordLimit);
+        renderCancelledBookings(cancelledData.data);
+
+        const pendingData = await fetchBookingsByStatus('pending');
+        renderPendingBookings(pendingData.data);
+    } catch (err) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(err);
+        }
+        console.error('Error restoring booking to pending:', err);
+        showToast('Network error: Could not restore booking. Please try again.', 'error');
+        btnRestore.disabled = false;
+        btnRestore.innerText = originalText;
+    }
+});
+
+// Standalone event delegation listener on #view-cancelled for Permanently Delete action
+document.getElementById('view-cancelled')?.addEventListener('click', async (event) => {
+    const btnDelete = event.target.closest('.btn-delete-perm');
+    if (!btnDelete) return;
+
+    const isConfirmed = window.confirm("Are you sure you want to permanently delete this booking record?");
+    if (!isConfirmed) return;
+
+    const card = btnDelete.closest('.booking-card');
+    if (!card) return;
+    const bookingId = card.getAttribute('data-id');
+    if (!bookingId) return;
+
+    const originalText = btnDelete.innerText || 'Permanently Delete';
+    btnDelete.disabled = true;
+    btnDelete.innerText = 'Deleting...';
+
+    const client = typeof supabaseBackend !== 'undefined' ? supabaseBackend : window.supabase;
+
+    try {
+        const { error } = await client
+            .from('bookings')
+            .delete()
+            .eq('id', bookingId);
+
+        if (error) throw error;
+
+        showToast("Booking permanently deleted.", "success");
+
+        const cancelledData = await fetchBookingsByStatus('cancelled', cancelledRecordLimit);
+        renderCancelledBookings(cancelledData.data);
+    } catch (err) {
+        if (typeof Sentry !== 'undefined') {
+            Sentry.captureException(err);
+        }
+        console.error('Error permanently deleting booking:', err);
+        showToast('Network error: Could not delete booking. Please try again.', 'error');
+        btnDelete.disabled = false;
+        btnDelete.innerText = originalText;
     }
 });
 
