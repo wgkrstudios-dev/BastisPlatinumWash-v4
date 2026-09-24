@@ -1385,6 +1385,9 @@ document.getElementById('view-pending')?.addEventListener('click', async (event)
     if (!card) return;
     const bookingId = card.getAttribute('data-id');
 
+    const isConfirmed = window.confirm("Are you sure you want to cancel this booking?");
+    if (!isConfirmed) return;
+
     // Ensure supabaseBackend is available
     if (typeof supabaseBackend === 'undefined') {
         window.supabaseBackend = window.supabase;
@@ -1628,6 +1631,9 @@ document.getElementById('view-confirmed')?.addEventListener('click', async (even
     if (!card) return;
     const bookingId = card.getAttribute('data-id');
     if (!bookingId) return;
+
+    const isConfirmed = window.confirm("Are you sure you want to cancel this booking?");
+    if (!isConfirmed) return;
 
     // UI Interaction State
     btnCancel.disabled = true;
