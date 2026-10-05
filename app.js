@@ -164,6 +164,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerAddressInput = document.getElementById('customer-address');
     const bookingDateTimeInput = document.getElementById('booking-date-time');
 
+    function createBubble(x, y) {
+        try {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+
+            const size = Math.random() * 12 + 12;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+
+            bubble.style.left = `${x}px`;
+            bubble.style.top = `${y}px`;
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 80 + 60;
+
+            bubble.style.setProperty('--end-x', 'calc(-50% + ' + (Math.cos(angle) * distance) + 'px)');
+            bubble.style.setProperty('--end-y', 'calc(-50% + ' + (Math.sin(angle) * distance) + 'px)');
+
+            bubble.style.animationDuration = Math.random() * 0.4 + 0.5 + 's';
+
+            document.body.appendChild(bubble);
+
+            bubble.addEventListener('animationend', () => {
+                bubble.remove();
+            });
+        } catch (error) {
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+        }
+    }
+
     // Dynamic pricing calculation based on selected vehicle quantities
     function updatePricingState() {
         try {
@@ -237,6 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 hatchbackQty += 1;
                 updateVehicleCardUI();
+
+                const rect = btnHatchbackPlus.getBoundingClientRect();
+                const originX = rect.left + (rect.width / 2);
+                const originY = rect.top + (rect.height / 2);
+                for (let i = 0; i < 12; i++) {
+                    createBubble(originX, originY);
+                }
             } catch (error) {
                 if (window.Sentry) {
                     Sentry.captureException(error);
@@ -251,6 +290,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 hatchbackQty = Math.max(0, hatchbackQty - 1);
                 updateVehicleCardUI();
+
+                const rect = btnHatchbackMinus.getBoundingClientRect();
+                const originX = rect.left + (rect.width / 2);
+                const originY = rect.top + (rect.height / 2);
+                for (let i = 0; i < 12; i++) {
+                    createBubble(originX, originY);
+                }
             } catch (error) {
                 if (window.Sentry) {
                     Sentry.captureException(error);
@@ -265,6 +311,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 suvQty += 1;
                 updateVehicleCardUI();
+
+                const rect = btnSuvPlus.getBoundingClientRect();
+                const originX = rect.left + (rect.width / 2);
+                const originY = rect.top + (rect.height / 2);
+                for (let i = 0; i < 12; i++) {
+                    createBubble(originX, originY);
+                }
             } catch (error) {
                 if (window.Sentry) {
                     Sentry.captureException(error);
@@ -279,6 +332,13 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 suvQty = Math.max(0, suvQty - 1);
                 updateVehicleCardUI();
+
+                const rect = btnSuvMinus.getBoundingClientRect();
+                const originX = rect.left + (rect.width / 2);
+                const originY = rect.top + (rect.height / 2);
+                for (let i = 0; i < 12; i++) {
+                    createBubble(originX, originY);
+                }
             } catch (error) {
                 if (window.Sentry) {
                     Sentry.captureException(error);
@@ -360,6 +420,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (totalVehicles <= 0) {
                 showToast('Please select at least one vehicle to proceed with booking.', 'error');
                 return;
+            }
+
+            const rect = btnBookNow.getBoundingClientRect();
+            const originX = rect.left + (rect.width / 2);
+            const originY = rect.top + (rect.height / 2);
+            for (let i = 0; i < 12; i++) {
+                createBubble(originX, originY);
             }
 
             openBookingModal();
