@@ -132,6 +132,9 @@ let suvQty = 0;
 
 // Orchestrate DOM interactions when markup structure is parsed
 document.addEventListener('DOMContentLoaded', () => {
+    if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
+    window.scrollTo(0, 0);
+
     // Select dynamic elements on the page
     const priceDisplayVal = document.getElementById('price-display-val');
     const btnBookNow = document.getElementById('btn-book-now');
@@ -188,6 +191,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
             bubble.addEventListener('animationend', () => {
                 bubble.remove();
+            });
+        } catch (error) {
+            if (window.Sentry) {
+                Sentry.captureException(error);
+            }
+        }
+    }
+
+    function createSplash(x, y) {
+        try {
+            const drop = document.createElement('div');
+            drop.classList.add('droplet');
+
+            const size = Math.random() * 5 + 3;
+            drop.style.width = size + 'px';
+            drop.style.height = size + 'px';
+
+            drop.style.left = x + 'px';
+            drop.style.top = y + 'px';
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 60 + 40;
+
+            drop.style.setProperty('--end-x', 'calc(-50% + ' + (Math.cos(angle) * distance) + 'px)');
+            drop.style.setProperty('--end-y', 'calc(-50% + ' + ((Math.sin(angle) * distance) + 30) + 'px)');
+
+            drop.style.animationDuration = (Math.random() * 0.3 + 0.3) + 's';
+
+            document.body.appendChild(drop);
+
+            drop.addEventListener('animationend', () => {
+                drop.remove();
             });
         } catch (error) {
             if (window.Sentry) {
@@ -375,6 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Helper function to reveal the booking modal overlay with multi-vehicle details
     function openBookingModal() {
         try {
+            bookingModal.classList.remove('exit-right');
             const totalPrice = (hatchbackQty * 100) + (suvQty * 120);
             const vehicleSummary = getVehicleSummaryString(hatchbackQty, suvQty);
 
@@ -395,14 +431,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         bookingModal.classList.remove('hidden');
                         setTimeout(() => {
                             bookingModal.classList.add('active');
-                        }, 10);
+                        }, 900);
                     }
                 }, 120);
             } else if (bookingModal) {
                 bookingModal.classList.remove('hidden');
                 setTimeout(() => {
                     bookingModal.classList.add('active');
-                }, 10);
+                }, 900);
             }
         } catch (error) {
             showToast('Failed to open booking details. Please try again.', 'error');
@@ -443,9 +479,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeModal() {
         document.body.style.overflow = '';
         bookingModal.classList.remove('active');
+        bookingModal.classList.add('exit-right');
         setTimeout(() => {
+            bookingModal.classList.remove('exit-right');
             bookingModal.classList.add('hidden');
-        }, 300);
+        }, 1500);
     }
 
     // Modal close binds
@@ -602,6 +640,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const submitBtnSpan = submitBtn.querySelector('span');
             const originalBtnText = submitBtnSpan.textContent;
             submitBtnSpan.textContent = 'Processing...';
+
+            const rect = submitBtn.getBoundingClientRect();
+            const originX = rect.left + (rect.width / 2);
+            const originY = rect.top + (rect.height / 2);
+            for (let i = 0; i < 12; i++) {
+                createBubble(originX, originY);
+            }
+
             submitBtn.disabled = true;
 
             // Execute the database insert function
@@ -676,12 +722,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                showToast("Booking request recieved! Keep an eye on your inbox, we'll confirm your appointment soon.", "success");
+                try {
+                    const bubble = document.createElement('div');
+                    bubble.classList.add('hero-bubble');
+                    document.body.appendChild(bubble);
 
-                // Close the modal after a short delay to allow success toast to be read
-                setTimeout(() => {
-                    closeModal();
-                }, 4000);
+                    setTimeout(() => {
+                        const rect = bubble.getBoundingClientRect();
+                        const centerX = rect.left + (rect.width / 2);
+                        const centerY = rect.top + (rect.height / 2);
+
+                        for (let i = 0; i < 12; i++) {
+                            createSplash(centerX, centerY);
+                        }
+
+                        bubble.classList.add('pop');
+
+                        setTimeout(() => {
+                            bubble.remove();
+                            document.getElementById('success-overlay').classList.add('reveal');
+
+                            setTimeout(() => {
+                                closeModal();
+
+                                setTimeout(() => {
+                                    document.getElementById('success-overlay').classList.remove('reveal');
+                                    bookingForm.reset();
+                                    updatePricingState();
+                                    window.scrollTo(0, 0);
+                                    window.location.reload();
+                                }, 1500);
+                            }, 2500);
+                        }, 150);
+                    }, 3500);
+                } catch (error) {
+                    console.error('Error executing success animation sequence:', error);
+                    if (window.Sentry) {
+                        Sentry.captureException(error);
+                    }
+                }
             } else {
                 showToast(`Booking submission failed: ${result.error}`, "error");
             }
