@@ -167,6 +167,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerAddressInput = document.getElementById('customer-address');
     const bookingDateTimeInput = document.getElementById('booking-date-time');
 
+    // Initialize Flatpickr for booking date & time
+    try {
+        flatpickr('#booking-date-time', {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            minDate: "today",
+            time_24hr: true,
+            disableMobile: true,
+            static: true
+        });
+    } catch (error) {
+        console.error('Error initializing Flatpickr on #booking-date-time:', error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+
     function createBubble(x, y) {
         try {
             const bubble = document.createElement('div');

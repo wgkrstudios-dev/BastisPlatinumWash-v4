@@ -2811,7 +2811,24 @@ document.getElementById('pending-sub-nav')?.addEventListener('click', async (eve
     await activateSubStatusPill(pillBtn.getAttribute('data-status'));
 });
 
+// Initialize Flatpickr instances for Propose Time Booking Modal (PTBM)
+try {
+    flatpickr('#ptbm-date', {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        disableMobile: true
+    });
 
-
-
-
+    flatpickr('#ptbm-time', {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: true,
+        disableMobile: true
+    });
+} catch (error) {
+    console.error('Error initializing Flatpickr on PTBM inputs:', error);
+    if (window.Sentry) {
+        Sentry.captureException(error);
+    }
+}

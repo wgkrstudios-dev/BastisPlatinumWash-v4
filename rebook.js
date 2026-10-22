@@ -4,6 +4,28 @@
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Flatpickr instances for rebooking date and time
+    try {
+        flatpickr('#rebook-date', {
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            disableMobile: true
+        });
+
+        flatpickr('#rebook-time', {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            time_24hr: true,
+            disableMobile: true
+        });
+    } catch (error) {
+        console.error('Error initializing Flatpickr on rebook inputs:', error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+
     // Utilize native URLSearchParams API to parse the active browser URL query string
     const urlParams = new URLSearchParams(window.location.search);
     const targetBookingId = urlParams.get('booking_id');

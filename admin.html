@@ -7,6 +7,8 @@
     <title>Basti's Platinum Wash - Admin Portal</title>
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
     <!-- Sentry CDN Script -->
     <script src="https://browser.sentry-cdn.com/7.112.2/bundle.min.js" crossorigin="anonymous"></script>
     <!-- Supabase CDN Script -->
@@ -131,11 +133,11 @@
             <form id="ptbm-form">
                 <div class="form-group">
                     <label class="form-label">Select Date</label>
-                    <input type="date" id="ptbm-date" class="form-input" required>
+                    <input type="text" id="ptbm-date" class="form-input" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Select Time</label>
-                    <input type="time" id="ptbm-time" class="form-input" required>
+                    <input type="text" id="ptbm-time" class="form-input" required>
                 </div>
                 <div class="modal-footer">
                     <button type="submit" id="ptbm-btn-submit" class="btn-primary">Send Proposal</button>
@@ -179,6 +181,7 @@
     </div>
 
     <script src="admin.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </body>
 
 </html>

@@ -2040,3 +2040,29 @@ a,
     width: 110px; 
   } 
 }
+
+.flatpickr-calendar { 
+    background: rgba(20, 20, 20, 0.95) !important; 
+    backdrop-filter: blur(16px); 
+    border: 1px solid rgba(255, 255, 255, 0.08) !important; 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9) !important; 
+    font-family: var(--font-family) !important; 
+}
+.flatpickr-day.selected { 
+    background: #ffffff !important; 
+    border-color: #ffffff !important; 
+    color: #000000 !important; 
+    font-weight: bold; 
+}
+
+.flatpickr-month {
+    height: 50px !important;
+    overflow: hidden;
+}
+.flatpickr-current-month {
+    padding-top: 10px !important;
+}
+.flatpickr-weekdays {
+    height: 28px !important;
+}
+

@@ -16,6 +16,8 @@
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -209,7 +211,7 @@
         <!-- Date & Time -->
         <div class="form-group">
           <label for="booking-date-time" class="form-label">Preferred Date &amp; Time</label>
-          <input type="datetime-local" id="booking-date-time" class="form-input" required>
+          <input type="text" id="booking-date-time" class="form-input" required>
         </div>
 
         <div class="modal-footer">
@@ -227,6 +229,7 @@
   </div>
 
   <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </body>
 
 </html>

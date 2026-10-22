@@ -14,6 +14,8 @@
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
     <!-- Supabase JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Supabase Configuration -->
@@ -63,13 +65,13 @@
                 <!-- Preferred Date -->
                 <div class="form-group">
                     <label for="rebook-date" class="form-label">Preferred Date</label>
-                    <input type="date" id="rebook-date" class="form-input" required>
+                    <input type="text" id="rebook-date" class="form-input" required>
                 </div>
 
                 <!-- Preferred Time -->
                 <div class="form-group">
                     <label for="rebook-time" class="form-label">Preferred Time</label>
-                    <input type="time" id="rebook-time" class="form-input" required>
+                    <input type="text" id="rebook-time" class="form-input" required>
                 </div>
 
                 <div style="margin-top: 1.5rem;">
@@ -90,6 +92,7 @@
 
     <!-- Router Logic -->
     <script src="rebook.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </body>
 
 </html>
