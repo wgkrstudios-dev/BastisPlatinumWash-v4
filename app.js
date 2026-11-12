@@ -173,9 +173,32 @@ document.addEventListener('DOMContentLoaded', () => {
             enableTime: true,
             dateFormat: "Y-m-d H:i",
             minDate: "today",
+            minTime: "08:00",
+            maxTime: "17:00",
+            minuteIncrement: 30,
             time_24hr: true,
             disableMobile: true,
-            static: true
+            position: "above",
+            onOpen: function(selectedDates, dateStr, instance) {
+                const modalContainer = document.querySelector('.modal-container');
+                if (modalContainer) {
+                    const initialScrollTop = modalContainer.scrollTop;
+                    instance._scrollHandler = function() {
+                        const currentScrollTop = modalContainer.scrollTop;
+                        if (Math.abs(currentScrollTop - initialScrollTop) > 15) {
+                            instance.close();
+                        }
+                    };
+                    modalContainer.addEventListener('scroll', instance._scrollHandler);
+                }
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                const modalContainer = document.querySelector('.modal-container');
+                if (modalContainer && instance._scrollHandler) {
+                    modalContainer.removeEventListener('scroll', instance._scrollHandler);
+                    instance._scrollHandler = null;
+                }
+            }
         });
     } catch (error) {
         console.error('Error initializing Flatpickr on #booking-date-time:', error);

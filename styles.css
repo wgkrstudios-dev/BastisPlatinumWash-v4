@@ -2047,6 +2047,7 @@ a,
     border: 1px solid rgba(255, 255, 255, 0.08) !important; 
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9) !important; 
     font-family: var(--font-family) !important; 
+    z-index: 10500 !important;
 }
 .flatpickr-day.selected { 
     background: #ffffff !important; 
