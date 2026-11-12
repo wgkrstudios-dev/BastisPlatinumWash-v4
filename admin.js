@@ -1436,8 +1436,16 @@ document.getElementById('view-pending')?.addEventListener('click', async (event)
         const hh = String(dateObj.getHours()).padStart(2, '0');
         const min = String(dateObj.getMinutes()).padStart(2, '0');
         
-        document.getElementById('ptbm-date').value = `${yyyy}-${mm}-${dd}`;
-        document.getElementById('ptbm-time').value = `${hh}:${min}`;
+        const dateValue = `${yyyy}-${mm}-${dd}`;
+        const timeValue = `${hh}:${min}`;
+        document.getElementById('ptbm-date').value = dateValue;
+        document.getElementById('ptbm-time').value = timeValue;
+        if (window.ptbmDateFp) {
+            window.ptbmDateFp.setDate(dateValue, false);
+        }
+        if (window.ptbmTimeFp) {
+            window.ptbmTimeFp.setDate(timeValue, false);
+        }
     }
 
     // Reveal the modal
@@ -1714,12 +1722,20 @@ document.getElementById('view-confirmed')?.addEventListener('click', (e) => {
                 const year = d.getFullYear();
                 const month = String(d.getMonth() + 1).padStart(2, '0');
                 const day = String(d.getDate()).padStart(2, '0');
-                dateInput.value = `${year}-${month}-${day}`;
+                const dateValue = `${year}-${month}-${day}`;
+                dateInput.value = dateValue;
+                if (window.ptbmDateFp) {
+                    window.ptbmDateFp.setDate(dateValue, false);
+                }
             }
 
             const timePattern = /^([01]\d|2[0-3]):?([0-5]\d)$/;
             if (timePattern.test(timeSegment)) {
-                timeInput.value = timeSegment;
+                const timeValue = timeSegment;
+                timeInput.value = timeValue;
+                if (window.ptbmTimeFp) {
+                    window.ptbmTimeFp.setDate(timeValue, false);
+                }
             }
         } catch (parseErr) {
             if (typeof Sentry !== 'undefined') {
@@ -2814,7 +2830,7 @@ document.getElementById('pending-sub-nav')?.addEventListener('click', async (eve
 // Initialize Flatpickr instances for Propose Time Booking Modal (PTBM)
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        flatpickr('#ptbm-date', {
+        window.ptbmDateFp = flatpickr('#ptbm-date', {
             dateFormat: "Y-m-d",
             minDate: "today",
             disableMobile: true,
@@ -2832,7 +2848,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        flatpickr('#ptbm-time', {
+        window.ptbmTimeFp = flatpickr('#ptbm-time', {
             enableTime: true,
             noCalendar: true,
             dateFormat: "H:i",

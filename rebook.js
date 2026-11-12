@@ -6,16 +6,19 @@
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Flatpickr instances for rebooking date and time
     try {
-        flatpickr('#rebook-date', {
+        window.rebookDateFp = flatpickr('#rebook-date', {
             dateFormat: "Y-m-d",
             minDate: "today",
             disableMobile: true
         });
 
-        flatpickr('#rebook-time', {
+        window.rebookTimeFp = flatpickr('#rebook-time', {
             enableTime: true,
             noCalendar: true,
             dateFormat: "H:i",
+            minTime: "08:00",
+            maxTime: "17:00",
+            minuteIncrement: 30,
             time_24hr: true,
             disableMobile: true
         });
@@ -71,8 +74,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const hours = String(dateObj.getHours()).padStart(2, '0');
                 const minutes = String(dateObj.getMinutes()).padStart(2, '0');
                 
-                document.getElementById('rebook-date').value = `${year}-${month}-${day}`;
-                document.getElementById('rebook-time').value = `${hours}:${minutes}`;
+                const dateValue = `${year}-${month}-${day}`;
+                const timeValue = `${hours}:${minutes}`;
+
+                document.getElementById('rebook-date').value = dateValue;
+                document.getElementById('rebook-time').value = timeValue;
+                if (window.rebookDateFp) {
+                    window.rebookDateFp.setDate(dateValue, false);
+                }
+                if (window.rebookTimeFp) {
+                    window.rebookTimeFp.setDate(timeValue, false);
+                }
             }
         }
 
@@ -244,15 +256,20 @@ document.getElementById('rebook-form')?.addEventListener('submit', async (e) => 
     try {
         if (submitBtn) submitBtn.disabled = true;
 
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from('bookings')
             .update({
                 booking_date_time: new Date(`${formattedDateString}T${formattedTimeString}`).toISOString(),
                 booking_status: 'customer_proposed'
             })
-            .eq('id', targetBookingId);
+            .eq('id', targetBookingId)
+            .select();
 
         if (error) throw error;
+
+        if (!data || data.length === 0) {
+            throw new Error("Update failed: No matching booking record found or update blocked by security policy.");
+        }
 
         showValidationFeedback("Counter-proposal sent successfully! The admin will review your requested time.", "success");
         if (submitBtn) {
