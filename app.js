@@ -178,24 +178,15 @@ document.addEventListener('DOMContentLoaded', () => {
             minuteIncrement: 30,
             time_24hr: true,
             disableMobile: true,
-            position: "above",
+            position: "below",
             onOpen: function(selectedDates, dateStr, instance) {
-                const modalContainer = document.querySelector('.modal-container');
-                if (modalContainer) {
-                    const initialScrollTop = modalContainer.scrollTop;
-                    instance._scrollHandler = function() {
-                        const currentScrollTop = modalContainer.scrollTop;
-                        if (Math.abs(currentScrollTop - initialScrollTop) > 15) {
-                            instance.close();
-                        }
-                    };
-                    modalContainer.addEventListener('scroll', instance._scrollHandler);
-                }
+                const initialScrollY = window.scrollY;
+                instance._scrollHandler = () => instance.close();
+                window.addEventListener('scroll', instance._scrollHandler, true);
             },
             onClose: function(selectedDates, dateStr, instance) {
-                const modalContainer = document.querySelector('.modal-container');
-                if (modalContainer && instance._scrollHandler) {
-                    modalContainer.removeEventListener('scroll', instance._scrollHandler);
+                if (instance._scrollHandler) {
+                    window.removeEventListener('scroll', instance._scrollHandler, true);
                     instance._scrollHandler = null;
                 }
             }

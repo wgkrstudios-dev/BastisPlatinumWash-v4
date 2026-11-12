@@ -2812,23 +2812,52 @@ document.getElementById('pending-sub-nav')?.addEventListener('click', async (eve
 });
 
 // Initialize Flatpickr instances for Propose Time Booking Modal (PTBM)
-try {
-    flatpickr('#ptbm-date', {
-        dateFormat: "Y-m-d",
-        minDate: "today",
-        disableMobile: true
-    });
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        flatpickr('#ptbm-date', {
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            disableMobile: true,
+            position: "below",
+            onOpen: function(selectedDates, dateStr, instance) {
+                const initialScrollY = window.scrollY;
+                instance._scrollHandler = () => instance.close();
+                window.addEventListener('scroll', instance._scrollHandler, true);
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                if (instance._scrollHandler) {
+                    window.removeEventListener('scroll', instance._scrollHandler, true);
+                    instance._scrollHandler = null;
+                }
+            }
+        });
 
-    flatpickr('#ptbm-time', {
-        enableTime: true,
-        noCalendar: true,
-        dateFormat: "H:i",
-        time_24hr: true,
-        disableMobile: true
-    });
-} catch (error) {
-    console.error('Error initializing Flatpickr on PTBM inputs:', error);
-    if (window.Sentry) {
-        Sentry.captureException(error);
+        flatpickr('#ptbm-time', {
+            enableTime: true,
+            noCalendar: true,
+            dateFormat: "H:i",
+            minTime: "08:00",
+            maxTime: "17:00",
+            minuteIncrement: 30,
+            time_24hr: true,
+            disableMobile: true,
+            position: "below",
+            onOpen: function(selectedDates, dateStr, instance) {
+                const initialScrollY = window.scrollY;
+                instance._scrollHandler = () => instance.close();
+                window.addEventListener('scroll', instance._scrollHandler, true);
+            },
+            onClose: function(selectedDates, dateStr, instance) {
+                if (instance._scrollHandler) {
+                    window.removeEventListener('scroll', instance._scrollHandler, true);
+                    instance._scrollHandler = null;
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error initializing Flatpickr on PTBM inputs:', error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
     }
-}
+});
