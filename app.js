@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             minuteIncrement: 30,
             time_24hr: true,
             disableMobile: true,
-            position: "below",
+            position: "above",
             onOpen: function(selectedDates, dateStr, instance) {
                 const initialScrollY = window.scrollY;
                 instance._scrollHandler = () => instance.close();
