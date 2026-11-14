@@ -13,9 +13,7 @@ export const emailTemplateConfirmed = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td align="center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <h1 style="font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #f8fafc; margin: 0; text-transform: uppercase;">
-                Bastis <span style="color: #10b981;">Platinum</span> Wash
-              </h1>
+              <img src="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
             </td>
           </tr>
           
@@ -51,7 +49,7 @@ export const emailTemplateConfirmed = `<!DOCTYPE html>
                     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1f2937; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); padding: 24px;">
                       <tr>
                         <td style="padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Appointment Time</div>
+                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Appointment date & time</div>
                           <div style="font-size: 16px; color: #e2e8f0; font-weight: 600;">{{booking_date_time}}</div>
                         </td>
                       </tr>
@@ -122,9 +120,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td align="center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <h1 style="font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #f8fafc; margin: 0; text-transform: uppercase;">
-                Bastis <span style="color: #fbbf24;">Platinum</span> Wash
-              </h1>
+              <img src="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
             </td>
           </tr>
           
@@ -160,7 +156,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
                     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1f2937; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); padding: 24px;">
                       <tr>
                         <td style="padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px;">Proposed Time</div>
+                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px;">Proposed date & time</div>
                           <div style="font-size: 16px; color: #fbbf24; font-weight: 700;">{{proposed_date_time}}</div>
                         </td>
                       </tr>
@@ -268,9 +264,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td align="center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <h1 style="font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #f8fafc; margin: 0; text-transform: uppercase;">
-                Bastis <span style="color: #ef4444;">Platinum</span> Wash
-              </h1>
+              <img src="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
             </td>
           </tr>
           
@@ -306,7 +300,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
                     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #1f2937; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); padding: 24px;">
                       <tr>
                         <td style="padding-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Cancelled Appointment Time</div>
+                          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Cancelled Appointment date & time</div>
                           <div style="font-size: 16px; color: #e2e8f0; font-weight: 600;">{{booking_date_time}}</div>
                         </td>
                       </tr>

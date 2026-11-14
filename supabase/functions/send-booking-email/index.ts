@@ -41,6 +41,28 @@ Deno.serve(async (req) => {
     }
 
     let htmlBody = "";
+    let formattedDateTime = "";
+
+    try {
+      if (record.booking_date_time) {
+        const dateObj = new Date(record.booking_date_time);
+        if (isNaN(dateObj.getTime())) {
+          throw new Error(`Invalid booking_date_time value: ${record.booking_date_time}`);
+        }
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const weekday = weekdays[dateObj.getDay()];
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        const month = months[dateObj.getMonth()];
+        const year = dateObj.getFullYear();
+        const hours = String(dateObj.getHours()).padStart(2, "0");
+        const minutes = String(dateObj.getMinutes()).padStart(2, "0");
+        formattedDateTime = `${weekday}, ${day} ${month} ${year}, ${hours}:${minutes}`;
+      }
+    } catch (dateErr) {
+      console.error("Error formatting booking_date_time:", dateErr);
+      formattedDateTime = record.booking_date_time || "";
+    }
 
     switch (record.booking_status) {
       case 'confirmed':
@@ -61,8 +83,8 @@ Deno.serve(async (req) => {
 
     htmlBody = htmlBody
       .replaceAll('{{customer_name}}', record.customer_name || '')
-      .replaceAll('{{booking_date_time}}', record.booking_date_time || '')
-      .replaceAll('{{proposed_date_time}}', record.booking_date_time || '')
+      .replaceAll('{{booking_date_time}}', formattedDateTime || '')
+      .replaceAll('{{proposed_date_time}}', formattedDateTime || '')
       .replaceAll('{{vehicle_type}}', record.vehicle_type || '')
       .replaceAll('{{customer_address}}', record.customer_address || '')
       .replaceAll('{{total_price}}', String(record.total_price || '0.00'))
