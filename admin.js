@@ -452,7 +452,9 @@ document.getElementById('login-btn').addEventListener('click', async () => {
             throw error;
         }
 
-        // If login is successful, hide the login container and display the dashboard
+        // If login is successful, trigger exit animation, wait 400ms, then hide the login container and display the dashboard
+        document.getElementById('login-container').classList.add('login-exit-anim');
+        await new Promise(resolve => setTimeout(resolve, 400));
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('dashboard-container').style.display = 'block';
 
