@@ -1,0 +1,43 @@
+/* === [STEP 1.2: BASE LAYOUT & MOBILE LOCK] === */
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    background-color: #0a0a0a;
+    font-family: 'Outfit', sans-serif;
+}
+
+#canvas-container {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 1;
+    background: radial-gradient(circle at center, #1a1a1f 0%, #0a0a0a 75%);
+}
+
+#ui-layer {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 10;
+    pointer-events: none;
+}
