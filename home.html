@@ -33,7 +33,36 @@
 <body>
     <!-- === [STEP 1.1: DOM SHELL] === -->
     <div id="canvas-container"></div>
-    <div id="ui-layer"></div>
+    <div id="ui-layer">
+        <!-- === [STEP 2.1: UI SHELL & NAVIGATION] === -->
+        <div id="brand-header">
+            <img src="assets/BPCW-mainlogo.png" id="brand-logo" alt="Basti's Platinum Car Wash Logo">
+            <div id="loading-progress">0%</div>
+        </div>
+
+        <nav id="main-menu">
+            <button type="button" class="main-menu-btn" data-target="item1">Menu Item 1</button>
+            <button type="button" class="main-menu-btn" data-target="item2">Menu Item 2</button>
+            <button type="button" class="main-menu-btn" data-target="item3">Menu Item 3</button>
+            <button type="button" class="main-menu-btn" data-target="item4">Menu Item 4</button>
+        </nav>
+
+        <a href="index.html" id="book-now-bubble" aria-label="Book Now"><span>Book Now</span></a>
+
+        <!-- === [STEP 3.1: SELECTED-STATE UI SHELL] === -->
+        <div id="content-display">
+            <h2 id="content-title"></h2>
+            <p id="content-body"></p>
+        </div>
+
+        <nav id="sub-menu">
+            <button type="button" class="sub-menu-btn" data-target="home">Home</button>
+            <button type="button" class="sub-menu-btn" data-target="item1">Menu Item 1</button>
+            <button type="button" class="sub-menu-btn" data-target="item2">Menu Item 2</button>
+            <button type="button" class="sub-menu-btn" data-target="item3">Menu Item 3</button>
+            <button type="button" class="sub-menu-btn" data-target="item4">Menu Item 4</button>
+        </nav>
+    </div>
 
     <script type="module" src="home.js"></script>
 </body>

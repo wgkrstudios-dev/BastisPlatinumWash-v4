@@ -28,6 +28,83 @@ let scene, camera, renderer, cameraTarget, carModel, loadingManager;
 let isTransitioning = false;
 let isIntroComplete = false;
 
+// === [STEP 2.3: VIEW_CONFIG & DEBUG HELPER] ===
+
+const VIEW_CONFIG = {
+    home: {
+        widePos: new THREE.Vector3(0, 6.5, 4.5),
+        wideTarget: new THREE.Vector3(0, 0.5, 0),
+        zoomPos: new THREE.Vector3(0, 5.2, 2.8),
+        zoomTarget: new THREE.Vector3(0, 0.6, 0),
+        title: "Platinum Studio Overview",
+        body: "Precision mobile automotive detailing engineered to restore showroom gloss at your doorstep."
+    },
+    item1: {
+        widePos: new THREE.Vector3(-4.5, 1.8, 1.5),
+        wideTarget: new THREE.Vector3(0, 0.7, 0),
+        zoomPos: new THREE.Vector3(-2.6, 1.1, 0.4),
+        zoomTarget: new THREE.Vector3(-0.8, 0.75, 0.2),
+        title: "Driver Side & Paint Correction",
+        body: "Multi-stage pH-neutral snow foam wash and microfiber hand treatment for swirl-free body panels."
+    },
+    item2: {
+        widePos: new THREE.Vector3(4.5, 1.8, 1.5),
+        wideTarget: new THREE.Vector3(0, 0.7, 0),
+        zoomPos: new THREE.Vector3(2.6, 1.1, 0.4),
+        zoomTarget: new THREE.Vector3(0.8, 0.75, 0.2),
+        title: "Passenger Side & Alloy Care",
+        body: "Deep-cleansing iron decontamination for rims, brake calipers, and satin tire dressing."
+    },
+    item3: {
+        widePos: new THREE.Vector3(0, 1.8, 5.2),
+        wideTarget: new THREE.Vector3(0, 0.6, 1.0),
+        zoomPos: new THREE.Vector3(0.8, 1.05, 3.2),
+        zoomTarget: new THREE.Vector3(0.3, 0.65, 1.6),
+        title: "Front Fascia & Optics Clarity",
+        body: "Bug and tar removal across the front grille and optical-grade hydrophobic treatment for headlights."
+    },
+    item4: {
+        widePos: new THREE.Vector3(0, 2.0, -5.2),
+        wideTarget: new THREE.Vector3(0, 0.7, -1.0),
+        zoomPos: new THREE.Vector3(-0.9, 1.15, -3.4),
+        zoomTarget: new THREE.Vector3(-0.2, 0.7, -1.7),
+        title: "Rear Diffuser & Exhaust Polish",
+        body: "Carbon deposit removal and mirror-finish metal polishing for quad exhaust tips and rear valence."
+    }
+};
+
+try {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (
+        urlParams.get('debug') === 'true' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ) {
+        window.addEventListener('click', () => {
+            try {
+                if (camera && cameraTarget) {
+                    console.log('--- [DEBUG CAMERA TELEMETRY] ---');
+                    console.log(
+                        `camera.position: new THREE.Vector3(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)})`
+                    );
+                    console.log(
+                        `cameraTarget: new THREE.Vector3(${cameraTarget.x.toFixed(2)}, ${cameraTarget.y.toFixed(2)}, ${cameraTarget.z.toFixed(2)})`
+                    );
+                }
+            } catch (clickError) {
+                console.error("Error in debug telemetry click listener:", clickError);
+                if (window.Sentry) {
+                    Sentry.captureException(clickError);
+                }
+            }
+        });
+    }
+} catch (error) {
+    console.error("Error initializing debug helper:", error);
+    if (window.Sentry) {
+        Sentry.captureException(error);
+    }
+}
+
 try {
     scene = new THREE.Scene();
 
@@ -148,6 +225,206 @@ onWindowResize();
 
 try {
     loadingManager = new THREE.LoadingManager();
+
+    // === [STEP 2.4: PRELOADER & TIMEOUT FAILSAFE] ===
+
+    try {
+        const brandHeader = document.getElementById('brand-header');
+        const loadingProgress = document.getElementById('loading-progress');
+
+        if (brandHeader) {
+            brandHeader.style.opacity = '1';
+        }
+
+        let hasTriggeredIntro = false;
+
+        function triggerIntroSequence() {
+            try {
+                if (hasTriggeredIntro) return;
+                hasTriggeredIntro = true;
+
+                if (loadingProgress && window.gsap) {
+                    gsap.to(loadingProgress, {
+                        opacity: 0,
+                        duration: 0.4,
+                        ease: 'power2.out'
+                    });
+                } else if (loadingProgress) {
+                    loadingProgress.style.opacity = '0';
+                }
+
+                if (brandHeader && window.gsap) {
+                    gsap.to(brandHeader, {
+                        delay: 2,
+                        duration: 1.2,
+                        top: '1.25rem',
+                        left: '1.25rem',
+                        x: 0,
+                        y: 0,
+                        xPercent: 0,
+                        yPercent: 0,
+                        scale: 0.42,
+                        transformOrigin: 'top left',
+                        ease: 'power3.inOut'
+                    });
+                }
+
+                // === [STEP 2.5: INTRO CAMERA FLIGHT] ===
+
+                try {
+                    if (window.gsap && camera && cameraTarget && VIEW_CONFIG && VIEW_CONFIG.home) {
+                        gsap.to(camera.position, {
+                            x: VIEW_CONFIG.home.zoomPos.x,
+                            y: VIEW_CONFIG.home.zoomPos.y,
+                            z: VIEW_CONFIG.home.zoomPos.z,
+                            duration: 2.5,
+                            delay: 2.0,
+                            ease: "power3.inOut",
+                            overwrite: 'auto'
+                        });
+
+                        gsap.to(cameraTarget, {
+                            x: VIEW_CONFIG.home.zoomTarget.x,
+                            y: VIEW_CONFIG.home.zoomTarget.y,
+                            z: VIEW_CONFIG.home.zoomTarget.z,
+                            duration: 2.5,
+                            delay: 2.0,
+                            ease: "power3.inOut",
+                            overwrite: 'auto',
+                            onUpdate: () => {
+                                camera.lookAt(cameraTarget);
+                            },
+                            onComplete: () => {
+                                isIntroComplete = true;
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error in intro camera flight:", error);
+                    if (window.Sentry) {
+                        Sentry.captureException(error);
+                    }
+                }
+
+                // === [STEP 2.6: INTRO MENU & CTA REVEAL] ===
+
+                try {
+                    if (window.gsap) {
+                        gsap.to('.main-menu-btn', {
+                            x: 0,
+                            opacity: 1,
+                            duration: 0.8,
+                            stagger: 0.15,
+                            delay: 2.5,
+                            ease: "power3.out",
+                            overwrite: 'auto',
+                            onStart: function() {
+                                try {
+                                    document.querySelectorAll('.main-menu-btn').forEach(btn => {
+                                        btn.style.pointerEvents = 'auto';
+                                    });
+                                } catch (btnErr) {
+                                    if (window.Sentry) {
+                                        Sentry.captureException(btnErr);
+                                    }
+                                }
+                            }
+                        });
+
+                        gsap.to('#book-now-bubble', {
+                            opacity: 1,
+                            duration: 0.8,
+                            delay: 2.5,
+                            ease: "power2.out",
+                            overwrite: 'auto',
+                            onStart: () => {
+                                try {
+                                    const bookNowBubble = document.getElementById('book-now-bubble');
+                                    if (bookNowBubble) {
+                                        bookNowBubble.style.pointerEvents = 'auto';
+                                    }
+                                } catch (ctaErr) {
+                                    if (window.Sentry) {
+                                        Sentry.captureException(ctaErr);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Error in intro menu and CTA reveal:", error);
+                    if (window.Sentry) {
+                        Sentry.captureException(error);
+                    }
+                }
+            } catch (introError) {
+                console.error("Error in triggerIntroSequence:", introError);
+                if (window.Sentry) {
+                    Sentry.captureException(introError);
+                }
+            }
+        }
+
+        const fallbackTimeout = setTimeout(() => {
+            try {
+                triggerIntroSequence();
+                if (window.Sentry) {
+                    Sentry.captureException(new Error("3D Model Load Timeout Failsafe Triggered"));
+                }
+            } catch (timeoutError) {
+                console.error("Error in preloader timeout failsafe:", timeoutError);
+                if (window.Sentry) {
+                    Sentry.captureException(timeoutError);
+                }
+            }
+        }, 15000);
+
+        loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
+            try {
+                if (loadingProgress && itemsTotal > 0) {
+                    const percentage = Math.round((itemsLoaded / itemsTotal) * 100);
+                    loadingProgress.textContent = `${percentage}%`;
+                }
+            } catch (progressError) {
+                console.error("Error updating loading progress:", progressError);
+                if (window.Sentry) {
+                    Sentry.captureException(progressError);
+                }
+            }
+        };
+
+        loadingManager.onLoad = () => {
+            try {
+                clearTimeout(fallbackTimeout);
+                if (loadingProgress) {
+                    loadingProgress.textContent = '100%';
+                }
+                triggerIntroSequence();
+            } catch (loadError) {
+                console.error("Error in loadingManager.onLoad:", loadError);
+                if (window.Sentry) {
+                    Sentry.captureException(loadError);
+                }
+            }
+        };
+
+        loadingManager.onError = (url) => {
+            try {
+                console.error(`Error loading asset from URL: ${url}`);
+                if (window.Sentry) {
+                    Sentry.captureException(new Error(`Failed to load 3D asset: ${url}`));
+                }
+            } catch (errHandlerError) {
+                console.error("Error in loadingManager.onError:", errHandlerError);
+            }
+        };
+    } catch (error) {
+        console.error("Error configuring preloader and timeout failsafe:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+
     const gltfLoader = new GLTFLoader(loadingManager);
 
     gltfLoader.load(
@@ -257,6 +534,84 @@ try {
     );
 } catch (error) {
     console.error("Error initializing GLTFLoader:", error);
+    if (window.Sentry) {
+        Sentry.captureException(error);
+    }
+}
+
+// === [STEP 3.3: OUTBOUND MENU SEQUENCE] ===
+
+function hideMainMenu(onCompleteCallback) {
+    try {
+        if (!window.gsap) return;
+
+        gsap.to('.main-menu-btn', {
+            x: '150%',
+            opacity: 0,
+            duration: 0.6,
+            ease: "power3.in",
+            stagger: {
+                each: 0.12,
+                from: 'end'
+            },
+            overwrite: 'auto',
+            onStart: () => {
+                try {
+                    document.querySelectorAll('.main-menu-btn').forEach(btn => {
+                        btn.style.pointerEvents = 'none';
+                    });
+                } catch (startErr) {
+                    if (window.Sentry) {
+                        Sentry.captureException(startErr);
+                    }
+                }
+            },
+            onComplete: () => {
+                try {
+                    if (typeof onCompleteCallback === 'function') {
+                        onCompleteCallback();
+                    }
+                } catch (callbackErr) {
+                    console.error("Error in hideMainMenu onCompleteCallback:", callbackErr);
+                    if (window.Sentry) {
+                        Sentry.captureException(callbackErr);
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error in hideMainMenu:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+}
+
+try {
+    const mainMenu = document.getElementById('main-menu');
+    if (mainMenu) {
+        mainMenu.addEventListener('click', (e) => {
+            try {
+                const btn = e.target.closest('.main-menu-btn');
+                if (!btn) return;
+                if (isTransitioning) return;
+
+                isTransitioning = true;
+                const targetKey = btn.getAttribute('data-target');
+
+                hideMainMenu(() => {
+                    console.log(`Outbound main menu complete. Target section: ${targetKey}`);
+                });
+            } catch (error) {
+                console.error("Error handling main menu click:", error);
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+            }
+        });
+    }
+} catch (error) {
+    console.error("Error attaching main menu click listener:", error);
     if (window.Sentry) {
         Sentry.captureException(error);
     }
