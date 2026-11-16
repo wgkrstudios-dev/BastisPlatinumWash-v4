@@ -600,7 +600,10 @@ try {
                 const targetKey = btn.getAttribute('data-target');
 
                 hideMainMenu(() => {
-                    console.log(`Outbound main menu complete. Target section: ${targetKey}`);
+                    transitionCameraToSection(targetKey, () => {
+                        showSubMenu(targetKey);
+                        updateAndShowContent(targetKey);
+                    });
                 });
             } catch (error) {
                 console.error("Error handling main menu click:", error);
@@ -616,4 +619,360 @@ try {
         Sentry.captureException(error);
     }
 }
+
+// === [STEP 4.1: 2-STAGE CAMERA ROUTING] ===
+
+function transitionCameraToSection(targetKey, onCompleteCallback) {
+    try {
+        if (!window.gsap || !camera || !cameraTarget || !VIEW_CONFIG || !VIEW_CONFIG[targetKey]) {
+            isTransitioning = false;
+            return;
+        }
+
+        const targetView = VIEW_CONFIG[targetKey];
+
+        gsap.killTweensOf([camera.position, cameraTarget]);
+
+        const tl = gsap.timeline({
+            onComplete: () => {
+                try {
+                    if (typeof onCompleteCallback === 'function') {
+                        onCompleteCallback();
+                    }
+                } catch (callbackErr) {
+                    console.error("Error in transitionCameraToSection onCompleteCallback:", callbackErr);
+                    if (window.Sentry) {
+                        Sentry.captureException(callbackErr);
+                    }
+                }
+            }
+        });
+
+        // Stage 1: Wide Out
+        tl.to(camera.position, {
+            x: targetView.widePos.x,
+            y: targetView.widePos.y,
+            z: targetView.widePos.z,
+            duration: 1.2,
+            ease: "power2.inOut"
+        }, 0);
+
+        tl.to(cameraTarget, {
+            x: targetView.wideTarget.x,
+            y: targetView.wideTarget.y,
+            z: targetView.wideTarget.z,
+            duration: 1.2,
+            ease: "power2.inOut",
+            onUpdate: () => {
+                camera.lookAt(cameraTarget);
+            }
+        }, 0);
+
+        // Stage 2: Zoom In (after brief pause)
+        tl.to(camera.position, {
+            x: targetView.zoomPos.x,
+            y: targetView.zoomPos.y,
+            z: targetView.zoomPos.z,
+            duration: 1.5,
+            ease: "power3.inOut"
+        }, "+=0.35");
+
+        tl.to(cameraTarget, {
+            x: targetView.zoomTarget.x,
+            y: targetView.zoomTarget.y,
+            z: targetView.zoomTarget.z,
+            duration: 1.5,
+            ease: "power3.inOut",
+            onUpdate: () => {
+                camera.lookAt(cameraTarget);
+            }
+        }, "<");
+    } catch (error) {
+        isTransitioning = false;
+        console.error("Error in transitionCameraToSection:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+}
+
+// === [STEP 4.2: INBOUND SUB-MENU SEQUENCE] ===
+
+function showSubMenu(activeKey) {
+    try {
+        if (!window.gsap) return;
+
+        const allSubButtons = document.querySelectorAll('.sub-menu-btn');
+        const visibleSubButtons = [];
+
+        allSubButtons.forEach((btn) => {
+            if (btn.getAttribute('data-target') === activeKey) {
+                btn.style.display = 'none';
+                btn.style.pointerEvents = 'none';
+            } else {
+                btn.style.display = 'inline-flex';
+                btn.style.pointerEvents = 'auto';
+                visibleSubButtons.push(btn);
+            }
+        });
+
+        if (visibleSubButtons.length > 0) {
+            gsap.to(visibleSubButtons, {
+                y: 0,
+                opacity: 1,
+                duration: 0.6,
+                ease: "power3.out",
+                stagger: {
+                    each: 0.12,
+                    from: 'start'
+                },
+                overwrite: 'auto'
+            });
+        }
+    } catch (error) {
+        console.error("Error in showSubMenu:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+}
+
+// === [STEP 4.3: XSS-SAFE CONTENT POPULATION] ===
+
+function updateAndShowContent(targetKey) {
+    try {
+        if (!VIEW_CONFIG || !VIEW_CONFIG[targetKey]) {
+            isTransitioning = false;
+            return;
+        }
+
+        const targetView = VIEW_CONFIG[targetKey];
+        const contentDisplay = document.getElementById('content-display');
+        const contentTitle = document.getElementById('content-title');
+        const contentBody = document.getElementById('content-body');
+
+        if (contentTitle) {
+            contentTitle.textContent = targetView.title || '';
+        }
+
+        if (contentBody) {
+            contentBody.textContent = targetView.body || '';
+        }
+
+        if (contentDisplay && window.gsap) {
+            gsap.to(contentDisplay, {
+                opacity: 1,
+                duration: 0.6,
+                ease: "power2.out",
+                overwrite: 'auto'
+            });
+        } else if (contentDisplay) {
+            contentDisplay.style.opacity = '1';
+        }
+
+        isTransitioning = false;
+    } catch (error) {
+        isTransitioning = false;
+        console.error("Error in updateAndShowContent:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+}
+
+// === [STEP 5.1 & 5.2: INTER-MENU NAVIGATION] ===
+
+try {
+    const subMenu = document.getElementById('sub-menu');
+    if (subMenu) {
+        subMenu.addEventListener('click', (e) => {
+            try {
+                const btn = e.target.closest('.sub-menu-btn');
+                if (!btn) return;
+                if (isTransitioning) return;
+
+                const newTargetKey = btn.getAttribute('data-target');
+                if (newTargetKey === 'home') {
+                    returnToHomeView();
+                    return;
+                }
+
+                isTransitioning = true;
+
+                if (!window.gsap) {
+                    isTransitioning = false;
+                    return;
+                }
+
+                document.querySelectorAll('.sub-menu-btn').forEach(subBtn => {
+                    subBtn.style.pointerEvents = 'none';
+                });
+
+                gsap.to('#content-display', {
+                    opacity: 0,
+                    duration: 0.4,
+                    ease: "power2.in",
+                    overwrite: 'auto'
+                });
+
+                gsap.to('.sub-menu-btn', {
+                    y: '150%',
+                    opacity: 0,
+                    duration: 0.5,
+                    ease: "power3.in",
+                    stagger: {
+                        each: 0.1,
+                        from: 'end'
+                    },
+                    overwrite: 'auto',
+                    onComplete: () => {
+                        transitionCameraToSection(newTargetKey, () => {
+                            showSubMenu(newTargetKey);
+                            updateAndShowContent(newTargetKey);
+                        });
+                    }
+                });
+            } catch (error) {
+                isTransitioning = false;
+                console.error("Error handling sub-menu click:", error);
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+            }
+        });
+    }
+} catch (error) {
+    console.error("Error attaching sub-menu click listener:", error);
+    if (window.Sentry) {
+        Sentry.captureException(error);
+    }
+}
+
+// === [STEP 5.3: DUAL-TRIGGER HOME RESET] ===
+
+function returnToHomeView() {
+    try {
+        if (isTransitioning) return;
+        isTransitioning = true;
+
+        if (!window.gsap || !camera || !cameraTarget || !VIEW_CONFIG || !VIEW_CONFIG.home) {
+            isTransitioning = false;
+            return;
+        }
+
+        gsap.killTweensOf([camera.position, cameraTarget]);
+
+        const allSubButtons = document.querySelectorAll('.sub-menu-btn');
+        const visibleSubButtons = [];
+        allSubButtons.forEach((btn) => {
+            btn.style.pointerEvents = 'none';
+            if (btn.style.display !== 'none') {
+                visibleSubButtons.push(btn);
+            }
+        });
+
+        const tl = gsap.timeline({
+            onComplete: () => {
+                isTransitioning = false;
+            }
+        });
+
+        // 1. Fade out content display & drop visible sub-menu buttons off-screen
+        tl.to('#content-display', {
+            opacity: 0,
+            duration: 0.4,
+            ease: "power2.in",
+            overwrite: 'auto'
+        }, 0);
+
+        if (visibleSubButtons.length > 0) {
+            tl.to(visibleSubButtons, {
+                y: '150%',
+                opacity: 0,
+                duration: 0.5,
+                ease: "power3.in",
+                stagger: {
+                    each: 0.1,
+                    from: 'end'
+                },
+                overwrite: 'auto'
+            }, 0);
+        }
+
+        // 2. Fly camera back to home top-down roof view
+        tl.to(camera.position, {
+            x: VIEW_CONFIG.home.zoomPos.x,
+            y: VIEW_CONFIG.home.zoomPos.y,
+            z: VIEW_CONFIG.home.zoomPos.z,
+            duration: 2.0,
+            ease: "power3.inOut",
+            overwrite: 'auto'
+        }, 0.25);
+
+        tl.to(cameraTarget, {
+            x: VIEW_CONFIG.home.zoomTarget.x,
+            y: VIEW_CONFIG.home.zoomTarget.y,
+            z: VIEW_CONFIG.home.zoomTarget.z,
+            duration: 2.0,
+            ease: "power3.inOut",
+            overwrite: 'auto',
+            onUpdate: () => {
+                camera.lookAt(cameraTarget);
+            }
+        }, 0.25);
+
+        // 3. Glide main menu options back in from the right
+        tl.to('.main-menu-btn', {
+            x: 0,
+            opacity: 1,
+            duration: 0.8,
+            ease: "power3.out",
+            stagger: {
+                each: 0.15,
+                from: 'start'
+            },
+            overwrite: 'auto',
+            onStart: () => {
+                try {
+                    document.querySelectorAll('.main-menu-btn').forEach(btn => {
+                        btn.style.pointerEvents = 'auto';
+                    });
+                } catch (btnErr) {
+                    if (window.Sentry) {
+                        Sentry.captureException(btnErr);
+                    }
+                }
+            }
+        }, "-=0.6");
+    } catch (error) {
+        isTransitioning = false;
+        console.error("Error in returnToHomeView:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+}
+
+try {
+    const brandHeader = document.getElementById('brand-header');
+    if (brandHeader) {
+        brandHeader.addEventListener('click', () => {
+            try {
+                if (!isIntroComplete) return;
+                returnToHomeView();
+            } catch (error) {
+                console.error("Error handling brand header click:", error);
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+            }
+        });
+    }
+} catch (error) {
+    console.error("Error attaching brand header click listener:", error);
+    if (window.Sentry) {
+        Sentry.captureException(error);
+    }
+}
+
 
