@@ -27,6 +27,7 @@ window.addEventListener('unhandledrejection', (event) => {
 let scene, camera, renderer, cameraTarget, carModel, loadingManager;
 let isTransitioning = false;
 let isIntroComplete = false;
+let currentView = 'home';
 
 // === [STEP 2.3: VIEW_CONFIG & DEBUG HELPER] ===
 
@@ -116,7 +117,7 @@ try {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.28;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     const canvasContainer = document.getElementById('canvas-container');
@@ -166,7 +167,9 @@ try {
     scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
     pmremGenerator.dispose();
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    scene.fog = new THREE.FogExp2(0x070d16, 0.045);
+
+    const keyLight = new THREE.DirectionalLight(0xf8fafc, 2.8);
     keyLight.position.set(5, 10, 7);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -176,11 +179,22 @@ try {
     keyLight.shadow.bias = -0.0005;
     scene.add(keyLight);
 
+    const hemisphereLight = new THREE.HemisphereLight(0xdbeafe, 0x0f172a, 1.25);
+    scene.add(hemisphereLight);
+
+    const blueRimLightLeft = new THREE.DirectionalLight(0x38bdf8, 2.2);
+    blueRimLightLeft.position.set(-6, 4, -5);
+    scene.add(blueRimLightLeft);
+
+    const blueRimLightRight = new THREE.DirectionalLight(0x00a8ff, 1.8);
+    blueRimLightRight.position.set(6, 3.5, 4);
+    scene.add(blueRimLightRight);
+
     const floorGeometry = new THREE.CircleGeometry(20, 64);
     const floorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x111111,
-        roughness: 0.9,
-        metalness: 0.1
+        color: 0x162433,
+        roughness: 0.24,
+        metalness: 0.55
     });
     const studioFloor = new THREE.Mesh(floorGeometry, floorMaterial);
     studioFloor.rotation.x = -Math.PI / 2;
@@ -229,33 +243,59 @@ try {
     // === [STEP 2.4: PRELOADER & TIMEOUT FAILSAFE] ===
 
     try {
-        const brandHeader = document.getElementById('brand-header');
-        const loadingProgress = document.getElementById('loading-progress');
-
-        if (brandHeader) {
-            brandHeader.style.opacity = '1';
-        }
-
+        let isAssetLoaded = false;
+        let isLogoFadeComplete = false;
         let hasTriggeredIntro = false;
+        let progressState = { value: 0 };
+
+        const brandHeader = document.getElementById('brand-header');
+        const brandLogo = document.getElementById('brand-logo');
+        const loadingProgress = document.getElementById('loading-progress');
+        const introCurtain = document.getElementById('intro-curtain');
 
         function triggerIntroSequence() {
             try {
                 if (hasTriggeredIntro) return;
                 hasTriggeredIntro = true;
 
+                // Stage C: Reveal (fade out counter and dark curtain)
                 if (loadingProgress && window.gsap) {
                     gsap.to(loadingProgress, {
                         opacity: 0,
                         duration: 0.4,
-                        ease: 'power2.out'
+                        ease: "power2.out",
+                        overwrite: 'auto'
                     });
                 } else if (loadingProgress) {
                     loadingProgress.style.opacity = '0';
                 }
 
+                if (introCurtain && window.gsap) {
+                    gsap.to(introCurtain, {
+                        opacity: 0,
+                        duration: 1.4,
+                        delay: 0.2,
+                        ease: "power2.inOut",
+                        overwrite: 'auto',
+                        onComplete: () => {
+                            try {
+                                introCurtain.style.pointerEvents = 'none';
+                            } catch (curtainErr) {
+                                if (window.Sentry) {
+                                    Sentry.captureException(curtainErr);
+                                }
+                            }
+                        }
+                    });
+                } else if (introCurtain) {
+                    introCurtain.style.opacity = '0';
+                    introCurtain.style.pointerEvents = 'none';
+                }
+
+                // Stage D: Glide & Fly
                 if (brandHeader && window.gsap) {
                     gsap.to(brandHeader, {
-                        delay: 2,
+                        delay: 1.7,
                         duration: 1.2,
                         top: '1.25rem',
                         left: '1.25rem',
@@ -265,7 +305,8 @@ try {
                         yPercent: 0,
                         scale: 0.42,
                         transformOrigin: 'top left',
-                        ease: 'power3.inOut'
+                        ease: "power3.inOut",
+                        overwrite: 'auto'
                     });
                 }
 
@@ -278,7 +319,7 @@ try {
                             y: VIEW_CONFIG.home.zoomPos.y,
                             z: VIEW_CONFIG.home.zoomPos.z,
                             duration: 2.5,
-                            delay: 2.0,
+                            delay: 2.6,
                             ease: "power3.inOut",
                             overwrite: 'auto'
                         });
@@ -288,7 +329,7 @@ try {
                             y: VIEW_CONFIG.home.zoomTarget.y,
                             z: VIEW_CONFIG.home.zoomTarget.z,
                             duration: 2.5,
-                            delay: 2.0,
+                            delay: 2.6,
                             ease: "power3.inOut",
                             overwrite: 'auto',
                             onUpdate: () => {
@@ -315,7 +356,7 @@ try {
                             opacity: 1,
                             duration: 0.8,
                             stagger: 0.15,
-                            delay: 2.5,
+                            delay: 3.2,
                             ease: "power3.out",
                             overwrite: 'auto',
                             onStart: function() {
@@ -334,7 +375,7 @@ try {
                         gsap.to('#book-now-bubble', {
                             opacity: 1,
                             duration: 0.8,
-                            delay: 2.5,
+                            delay: 3.2,
                             ease: "power2.out",
                             overwrite: 'auto',
                             onStart: () => {
@@ -365,9 +406,89 @@ try {
             }
         }
 
+        // Stage A: Logo Fade-In -> Stage B: Loading Counter
+        if (brandLogo && window.gsap) {
+            gsap.fromTo(
+                brandLogo,
+                { opacity: 0 },
+                {
+                    opacity: 1,
+                    duration: 1.8,
+                    ease: "power2.inOut",
+                    onComplete: () => {
+                        try {
+                            isLogoFadeComplete = true;
+
+                            if (loadingProgress) {
+                                gsap.to(loadingProgress, {
+                                    opacity: 1,
+                                    duration: 0.3,
+                                    ease: "power2.out"
+                                });
+                            }
+
+                            if (isAssetLoaded) {
+                                gsap.to(progressState, {
+                                    value: 100,
+                                    duration: 1.6,
+                                    ease: "power1.inOut",
+                                    onUpdate: () => {
+                                        if (loadingProgress) {
+                                            loadingProgress.textContent = Math.round(progressState.value) + '%';
+                                        }
+                                    },
+                                    onComplete: () => {
+                                        triggerIntroSequence();
+                                    }
+                                });
+                            } else {
+                                gsap.to(progressState, {
+                                    value: 85,
+                                    duration: 5.0,
+                                    ease: "power1.out",
+                                    onUpdate: () => {
+                                        if (loadingProgress) {
+                                            loadingProgress.textContent = Math.round(progressState.value) + '%';
+                                        }
+                                    }
+                                });
+                            }
+                        } catch (stageBErr) {
+                            console.error("Error in Stage B loading counter:", stageBErr);
+                            if (window.Sentry) {
+                                Sentry.captureException(stageBErr);
+                            }
+                        }
+                    }
+                }
+            );
+        }
+
         const fallbackTimeout = setTimeout(() => {
             try {
-                triggerIntroSequence();
+                isAssetLoaded = true;
+                if (window.gsap) {
+                    gsap.killTweensOf(progressState);
+                    gsap.to(progressState, {
+                        value: 100,
+                        duration: 0.6,
+                        ease: "power1.inOut",
+                        onUpdate: () => {
+                            if (loadingProgress) {
+                                loadingProgress.textContent = Math.round(progressState.value) + '%';
+                            }
+                        },
+                        onComplete: () => {
+                            triggerIntroSequence();
+                        }
+                    });
+                } else {
+                    if (loadingProgress) {
+                        loadingProgress.textContent = '100%';
+                    }
+                    triggerIntroSequence();
+                }
+
                 if (window.Sentry) {
                     Sentry.captureException(new Error("3D Model Load Timeout Failsafe Triggered"));
                 }
@@ -379,27 +500,27 @@ try {
             }
         }, 15000);
 
-        loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
-            try {
-                if (loadingProgress && itemsTotal > 0) {
-                    const percentage = Math.round((itemsLoaded / itemsTotal) * 100);
-                    loadingProgress.textContent = `${percentage}%`;
-                }
-            } catch (progressError) {
-                console.error("Error updating loading progress:", progressError);
-                if (window.Sentry) {
-                    Sentry.captureException(progressError);
-                }
-            }
-        };
-
         loadingManager.onLoad = () => {
             try {
+                isAssetLoaded = true;
                 clearTimeout(fallbackTimeout);
-                if (loadingProgress) {
-                    loadingProgress.textContent = '100%';
+
+                if (isLogoFadeComplete && window.gsap) {
+                    gsap.killTweensOf(progressState);
+                    gsap.to(progressState, {
+                        value: 100,
+                        duration: 0.6,
+                        ease: "power1.inOut",
+                        onUpdate: () => {
+                            if (loadingProgress) {
+                                loadingProgress.textContent = Math.round(progressState.value) + '%';
+                            }
+                        },
+                        onComplete: () => {
+                            triggerIntroSequence();
+                        }
+                    });
                 }
-                triggerIntroSequence();
             } catch (loadError) {
                 console.error("Error in loadingManager.onLoad:", loadError);
                 if (window.Sentry) {
@@ -416,6 +537,9 @@ try {
                 }
             } catch (errHandlerError) {
                 console.error("Error in loadingManager.onError:", errHandlerError);
+                if (window.Sentry) {
+                    Sentry.captureException(errHandlerError);
+                }
             }
         };
     } catch (error) {
@@ -598,6 +722,7 @@ try {
 
                 isTransitioning = true;
                 const targetKey = btn.getAttribute('data-target');
+                currentView = targetKey;
 
                 hideMainMenu(() => {
                     transitionCameraToSection(targetKey, () => {
@@ -798,6 +923,7 @@ try {
                 }
 
                 isTransitioning = true;
+                currentView = newTargetKey;
 
                 if (!window.gsap) {
                     isTransitioning = false;
@@ -854,6 +980,7 @@ function returnToHomeView() {
     try {
         if (isTransitioning) return;
         isTransitioning = true;
+        currentView = 'home';
 
         if (!window.gsap || !camera || !cameraTarget || !VIEW_CONFIG || !VIEW_CONFIG.home) {
             isTransitioning = false;
@@ -958,7 +1085,7 @@ try {
     if (brandHeader) {
         brandHeader.addEventListener('click', () => {
             try {
-                if (!isIntroComplete) return;
+                if (!isIntroComplete || currentView === 'home') return;
                 returnToHomeView();
             } catch (error) {
                 console.error("Error handling brand header click:", error);
@@ -975,4 +1102,113 @@ try {
     }
 }
 
+// === [STEP 2.7: BUBBLE POP CTA & SPLASH LOGIC] ===
+
+let isBubblePopping = false;
+
+function createSplash(x, y) {
+    try {
+        const drop = document.createElement('div');
+        drop.classList.add('droplet');
+
+        const size = Math.random() * 5 + 3;
+        drop.style.width = size + 'px';
+        drop.style.height = size + 'px';
+
+        drop.style.left = x + 'px';
+        drop.style.top = y + 'px';
+
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 60 + 40;
+
+        drop.style.setProperty('--end-x', 'calc(-50% + ' + (Math.cos(angle) * distance) + 'px)');
+        drop.style.setProperty('--end-y', 'calc(-50% + ' + ((Math.sin(angle) * distance) + 30) + 'px)');
+
+        drop.style.animationDuration = (Math.random() * 0.3 + 0.3) + 's';
+
+        document.body.appendChild(drop);
+
+        drop.addEventListener('animationend', () => {
+            try {
+                drop.remove();
+            } catch (removeErr) {
+                if (window.Sentry) {
+                    Sentry.captureException(removeErr);
+                }
+            }
+        });
+    } catch (error) {
+        console.error("Error creating splash droplet:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+}
+
+try {
+    const bookNowBubble = document.getElementById('book-now-bubble');
+    if (bookNowBubble) {
+        bookNowBubble.addEventListener('click', (e) => {
+            try {
+                e.preventDefault();
+                if (isBubblePopping) return;
+                isBubblePopping = true;
+
+                const rect = bookNowBubble.getBoundingClientRect();
+                const centerX = rect.left + (rect.width / 2);
+                const centerY = rect.top + (rect.height / 2);
+
+                if (window.gsap) {
+                    gsap.killTweensOf(bookNowBubble);
+                }
+
+                bookNowBubble.classList.add('pop');
+
+                for (let i = 0; i < 14; i++) {
+                    createSplash(centerX, centerY);
+                }
+
+                setTimeout(() => {
+                    try {
+                        window.location.href = bookNowBubble.getAttribute('href') || 'index.html';
+                    } catch (navErr) {
+                        if (window.Sentry) {
+                            Sentry.captureException(navErr);
+                        }
+                    }
+                }, 380);
+            } catch (error) {
+                isBubblePopping = false;
+                console.error("Error in book-now-bubble click handler:", error);
+                if (window.Sentry) {
+                    Sentry.captureException(error);
+                }
+            }
+        });
+    }
+} catch (error) {
+    console.error("Error attaching book-now-bubble click listener:", error);
+    if (window.Sentry) {
+        Sentry.captureException(error);
+    }
+}
+
+window.addEventListener('pageshow', (event) => {
+    try {
+        if (event.persisted || isBubblePopping) {
+            isBubblePopping = false;
+            const bookNowBubble = document.getElementById('book-now-bubble');
+            if (bookNowBubble) {
+                bookNowBubble.classList.remove('pop');
+                bookNowBubble.style.opacity = '1';
+                bookNowBubble.style.pointerEvents = 'auto';
+            }
+        }
+    } catch (error) {
+        console.error("Error in pageshow bfcache handler:", error);
+        if (window.Sentry) {
+            Sentry.captureException(error);
+        }
+    }
+});
 
