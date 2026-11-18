@@ -62,7 +62,7 @@ const VIEW_CONFIG = {
         zoomPos: new THREE.Vector3(0.8, 1.05, 3.2),
         zoomTarget: new THREE.Vector3(0.3, 0.65, 1.6),
         title: "We Come To You",
-        body: "1. Select your vehicle size and choose a time slot online. 2. Our fully-equipped TEAM deploys to your home or office. 3. We restore your vehicle's shine while you relax, without ever waiting in line."
+        body: "1. Select your vehicle size and choose a time slot online.<br><br>2. Our fully-equipped team deploys to your home or office.<br><br>3. We restore your vehicle's shine while you relax, without ever waiting in line."
     },
     item4: {
         widePos: new THREE.Vector3(0, 2.0, -5.2),
@@ -70,7 +70,7 @@ const VIEW_CONFIG = {
         zoomPos: new THREE.Vector3(-0.9, 1.15, -3.4),
         zoomTarget: new THREE.Vector3(-0.2, 0.7, -1.7),
         title: "Contact & Hours",
-        body: "Servicing the greater Durban area. Operating Hours: Monday – Saturday, 08:00 to 17:00. Please use the Book Now button below to schedule all appointments online."
+        body: "Servicing the greater Durban area.<br><br>Operating Hours: Monday – Saturday, 08:00 to 17:00.<br><br>Please use the Book Now button below to schedule all appointments online."
     }
 };
 
@@ -204,27 +204,30 @@ try {
 
     const dummy = new THREE.Object3D();
     const bubbleGeo = new THREE.SphereGeometry(0.1, 16, 16);
-    const bubbleMat = new THREE.MeshStandardMaterial({
+    const bubbleMat = new THREE.MeshPhysicalMaterial({
         color: 0x38bdf8,
-        metalness: 0.9,
-        roughness: 0.1,
-        transparent: true,
-        opacity: 0.45
+        metalness: 0.1,
+        roughness: 0.05,
+        transmission: 0.9,
+        ior: 1.1,
+        transparent: true
     });
     const bubbleMesh = new THREE.InstancedMesh(bubbleGeo, bubbleMat, 150);
+
+    const sizes = [0.5, 0.8, 1.2, 1.6];
 
     for (let i = 0; i < 150; i++) {
         let x = 0;
         let z = 0;
-        while (Math.sqrt(x * x + z * z) <= 4) {
-            x = (Math.random() - 0.5) * 24;
-            z = (Math.random() - 0.5) * 24;
+        while (Math.sqrt(x * x + z * z) <= 2.5) {
+            x = (Math.random() - 0.5) * 11;
+            z = (Math.random() - 0.5) * 11;
         }
-        const y = Math.random() * 7.5 + 0.5;
-        const scale = Math.random() * 1.3 + 0.2;
+        const y = Math.random() * 5.5 + 0.5;
+        const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
 
         dummy.position.set(x, y, z);
-        dummy.scale.set(scale, scale, scale);
+        dummy.scale.set(randomSize, randomSize, randomSize);
         dummy.updateMatrix();
         bubbleMesh.setMatrixAt(i, dummy.matrix);
     }
@@ -921,7 +924,7 @@ function updateAndShowContent(targetKey) {
         }
 
         if (contentBody) {
-            contentBody.textContent = targetView.body || '';
+            contentBody.innerHTML = targetView.body || '';
         }
 
         if (contentDisplay && window.gsap) {
