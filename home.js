@@ -70,7 +70,7 @@ const VIEW_CONFIG = {
         zoomPos: new THREE.Vector3(-0.9, 1.15, -3.4),
         zoomTarget: new THREE.Vector3(-0.2, 0.7, -1.7),
         title: "Contact & Hours",
-        body: "Servicing the greater Durban area.<br><br>Operating Hours: Monday – Saturday, 08:00 to 17:00.<br><br>Please use the Book Now button below to schedule all appointments online."
+        body: "Servicing the greater Durban area.<br><br>Operating Hours:<br>Monday – Saturday<br>08:00 to 17:00.<br><br>Please use the Book Now button below to schedule all appointments online."
     }
 };
 
@@ -205,12 +205,16 @@ try {
     const dummy = new THREE.Object3D();
     const bubbleGeo = new THREE.SphereGeometry(0.1, 16, 16);
     const bubbleMat = new THREE.MeshPhysicalMaterial({
-        color: 0x38bdf8,
+        color: 0xffffff,
         metalness: 0.1,
         roughness: 0.05,
-        transmission: 0.9,
+        transmission: 0.95,
         ior: 1.1,
-        transparent: true
+        transparent: true,
+        opacity: 1,
+        attenuationColor: 0x38bdf8,
+        attenuationDistance: 2.0,
+        envMap: scene.environment
     });
     const bubbleMesh = new THREE.InstancedMesh(bubbleGeo, bubbleMat, 150);
 
