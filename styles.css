@@ -2069,6 +2069,114 @@ a,
     height: 28px !important;
 }
 
+.flatpickr-time {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 54px !important;
+    max-height: 54px !important;
+    line-height: 54px !important;
+    padding: 4px 6px !important;
+    gap: 4px !important;
+}
+
+.flatpickr-time .numInputWrapper {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex: 1 !important;
+    height: 44px !important;
+    position: relative !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+.flatpickr-time .numInputWrapper input.numInput {
+    order: 2 !important;
+    flex: 1 !important;
+    width: auto !important;
+    height: 100% !important;
+    padding: 0 !important;
+    text-align: center !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+    border: none !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+
+.flatpickr-time .numInputWrapper span.arrowUp,
+.flatpickr-time .numInputWrapper span.arrowDown {
+    position: relative !important;
+    top: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+    background: rgba(255, 255, 255, 0.06) !important;
+    border: none !important;
+    touch-action: manipulation !important;
+}
+
+.flatpickr-time .numInputWrapper span.arrowUp {
+    order: 1 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.flatpickr-time .numInputWrapper span.arrowDown {
+    order: 3 !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.flatpickr-time .numInputWrapper span.arrowUp:hover,
+.flatpickr-time .numInputWrapper span.arrowDown:hover,
+.flatpickr-time .numInputWrapper span.arrowUp:active,
+.flatpickr-time .numInputWrapper span.arrowDown:active {
+    background: rgba(255, 255, 255, 0.18) !important;
+}
+
+.flatpickr-time .numInputWrapper span.arrowUp:after,
+.flatpickr-time .numInputWrapper span.arrowDown:after {
+    position: static !important;
+    display: block !important;
+}
+
+@media (max-width: 768px) {
+    .flatpickr-time {
+        height: 60px !important;
+        max-height: 60px !important;
+        padding: 6px 8px !important;
+    }
+
+    .flatpickr-time .numInputWrapper {
+        height: 48px !important;
+    }
+
+    .flatpickr-time .numInputWrapper span.arrowUp,
+    .flatpickr-time .numInputWrapper span.arrowDown {
+        width: 44px !important;
+        min-width: 44px !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        padding: 12px !important;
+    }
+}
+
 @keyframes loginElementFadeIn {
   0% {
     opacity: 0;

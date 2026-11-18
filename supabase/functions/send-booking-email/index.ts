@@ -49,15 +49,17 @@ Deno.serve(async (req) => {
         if (isNaN(dateObj.getTime())) {
           throw new Error(`Invalid booking_date_time value: ${record.booking_date_time}`);
         }
-        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const weekday = weekdays[dateObj.getDay()];
-        const day = String(dateObj.getDate()).padStart(2, "0");
-        const month = months[dateObj.getMonth()];
-        const year = dateObj.getFullYear();
-        const hours = String(dateObj.getHours()).padStart(2, "0");
-        const minutes = String(dateObj.getMinutes()).padStart(2, "0");
-        formattedDateTime = `${weekday}, ${day} ${month} ${year}, ${hours}:${minutes}`;
+        const formatter = new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Africa/Johannesburg',
+          weekday: 'short',
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+        formattedDateTime = formatter.format(dateObj);
       }
     } catch (dateErr) {
       console.error("Error formatting booking_date_time:", dateErr);

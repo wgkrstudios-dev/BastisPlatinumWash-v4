@@ -179,6 +179,38 @@ document.addEventListener('DOMContentLoaded', () => {
             time_24hr: true,
             disableMobile: true,
             position: "above",
+            onReady: function(selectedDates, dateStr, instance) {
+                try {
+                    if (instance.calendarContainer) {
+                        const timeInputs = instance.calendarContainer.querySelectorAll('.flatpickr-time .numInput, .flatpickr-hour, .flatpickr-minute');
+                        timeInputs.forEach((input) => {
+                            input.setAttribute('readonly', 'readonly');
+                            input.setAttribute('inputmode', 'none');
+                            input.setAttribute('onfocus', 'this.blur()');
+                            input.style.userSelect = 'none';
+                            input.style.webkitUserSelect = 'none';
+                            input.addEventListener('focus', (e) => {
+                                try {
+                                    e.preventDefault();
+                                    input.blur();
+                                } catch (focusErr) {
+                                    if (window.Sentry) {
+                                        Sentry.captureException(focusErr);
+                                    }
+                                }
+                            });
+                            input.addEventListener('contextmenu', (e) => {
+                                e.preventDefault();
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error applying mobile keyboard suppression to Flatpickr time inputs:', error);
+                    if (window.Sentry) {
+                        Sentry.captureException(error);
+                    }
+                }
+            },
             onOpen: function(selectedDates, dateStr, instance) {
                 const initialScrollY = window.scrollY;
                 instance._scrollHandler = () => instance.close();
