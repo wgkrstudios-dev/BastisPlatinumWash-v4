@@ -45,32 +45,32 @@ const VIEW_CONFIG = {
         wideTarget: new THREE.Vector3(0, 0.7, 0),
         zoomPos: new THREE.Vector3(-2.6, 1.1, 0.4),
         zoomTarget: new THREE.Vector3(-0.8, 0.75, 0.2),
-        title: "Driver Side & Paint Correction",
-        body: "Multi-stage pH-neutral snow foam wash and microfiber hand treatment for swirl-free body panels."
+        title: "The Basti's Story",
+        body: "Founded by Sebastian, a young local entrepreneur with a drive for perfection. Basti's Platinum Wash brings a meticulous, high-quality mobile car wash directly to your driveway in Durban. Support the local hustle and experience premium care."
     },
     item2: {
         widePos: new THREE.Vector3(4.5, 1.8, 1.5),
         wideTarget: new THREE.Vector3(0, 0.7, 0),
         zoomPos: new THREE.Vector3(2.6, 1.1, 0.4),
         zoomTarget: new THREE.Vector3(0.8, 0.75, 0.2),
-        title: "Passenger Side & Alloy Care",
-        body: "Deep-cleansing iron decontamination for rims, brake calipers, and satin tire dressing."
+        title: "The Platinum Wash",
+        body: "We bring the professional car wash experience right to your home. Our comprehensive mobile service includes a thorough exterior hand wash, wheel and tyre cleaning, full interior vacuuming, and a complete wipe-down of all dash and trim surfaces."
     },
     item3: {
         widePos: new THREE.Vector3(0, 1.8, 5.2),
         wideTarget: new THREE.Vector3(0, 0.6, 1.0),
         zoomPos: new THREE.Vector3(0.8, 1.05, 3.2),
         zoomTarget: new THREE.Vector3(0.3, 0.65, 1.6),
-        title: "Front Fascia & Optics Clarity",
-        body: "Bug and tar removal across the front grille and optical-grade hydrophobic treatment for headlights."
+        title: "We Come To You",
+        body: "1. Select your vehicle size and choose a time slot online. 2. Our fully-equipped TEAM deploys to your home or office. 3. We restore your vehicle's shine while you relax, without ever waiting in line."
     },
     item4: {
         widePos: new THREE.Vector3(0, 2.0, -5.2),
         wideTarget: new THREE.Vector3(0, 0.7, -1.0),
         zoomPos: new THREE.Vector3(-0.9, 1.15, -3.4),
         zoomTarget: new THREE.Vector3(-0.2, 0.7, -1.7),
-        title: "Rear Diffuser & Exhaust Polish",
-        body: "Carbon deposit removal and mirror-finish metal polishing for quad exhaust tips and rear valence."
+        title: "Contact & Hours",
+        body: "Servicing the greater Durban area. Operating Hours: Monday – Saturday, 08:00 to 17:00. Please use the Book Now button below to schedule all appointments online."
     }
 };
 
@@ -201,6 +201,36 @@ try {
     studioFloor.position.y = 0;
     studioFloor.receiveShadow = true;
     scene.add(studioFloor);
+
+    const dummy = new THREE.Object3D();
+    const bubbleGeo = new THREE.SphereGeometry(0.1, 16, 16);
+    const bubbleMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        metalness: 0.9,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 0.45
+    });
+    const bubbleMesh = new THREE.InstancedMesh(bubbleGeo, bubbleMat, 150);
+
+    for (let i = 0; i < 150; i++) {
+        let x = 0;
+        let z = 0;
+        while (Math.sqrt(x * x + z * z) <= 4) {
+            x = (Math.random() - 0.5) * 24;
+            z = (Math.random() - 0.5) * 24;
+        }
+        const y = Math.random() * 7.5 + 0.5;
+        const scale = Math.random() * 1.3 + 0.2;
+
+        dummy.position.set(x, y, z);
+        dummy.scale.set(scale, scale, scale);
+        dummy.updateMatrix();
+        bubbleMesh.setMatrixAt(i, dummy.matrix);
+    }
+
+    bubbleMesh.instanceMatrix.needsUpdate = true;
+    scene.add(bubbleMesh);
 } catch (error) {
     console.error("Error configuring studio lighting and floor:", error);
     if (window.Sentry) {
@@ -306,6 +336,16 @@ try {
                         scale: 0.42,
                         transformOrigin: 'top left',
                         ease: "power3.inOut",
+                        overwrite: 'auto'
+                    });
+
+                    gsap.to('.slogan-line', {
+                        opacity: 1,
+                        y: 0,
+                        duration: 0.8,
+                        stagger: 0.4,
+                        delay: 2.6,
+                        ease: "power2.out",
                         overwrite: 'auto'
                     });
                 }

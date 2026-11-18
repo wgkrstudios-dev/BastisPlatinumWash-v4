@@ -80,6 +80,28 @@ body {
     opacity: 0;
 }
 
+#slogan-container {
+    position: absolute;
+    top: 1.5rem;
+    left: 8.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    z-index: 15;
+    pointer-events: none;
+}
+
+.slogan-line {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #a3a3ac;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    transform: translateY(5px);
+}
+
 #loading-progress {
     font-size: 1.2rem;
     font-weight: 700;
