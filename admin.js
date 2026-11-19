@@ -400,6 +400,17 @@ function stopUpcomingBookingsWorker() {
 // Automatic session check on page load
 document.addEventListener('DOMContentLoaded', async () => {
     try {
+        if ('serviceWorker' in navigator) {
+            await navigator.serviceWorker.register('./admin-sw.js', { scope: './' });
+        }
+    } catch (err) {
+        console.error('Service Worker registration failed:', err);
+        if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+            window.Sentry.captureException(err);
+        }
+    }
+
+    try {
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (session) {
