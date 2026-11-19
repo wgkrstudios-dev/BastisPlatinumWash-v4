@@ -1217,7 +1217,7 @@ try {
 
                 setTimeout(() => {
                     try {
-                        window.location.href = bookNowBubble.getAttribute('href') || 'index.html';
+                        window.location.href = bookNowBubble.getAttribute('href') || 'booking.html';
                     } catch (navErr) {
                         if (window.Sentry) {
                             Sentry.captureException(navErr);
