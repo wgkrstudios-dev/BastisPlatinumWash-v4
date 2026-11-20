@@ -13,7 +13,7 @@ export const emailTemplateConfirmed = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td align="center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <img src="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
+              <img src="https://bpcw.co.za/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
             </td>
           </tr>
           
@@ -68,7 +68,7 @@ export const emailTemplateConfirmed = `<!DOCTYPE html>
                       <tr>
                         <td style="padding-top: 16px;">
                           <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Total Price</div>
-                          <div style="font-size: 20px; color: #10b981; font-weight: 700;">{{total_price}}</div>
+                          <div style="font-size: 20px; color: #10b981; font-weight: 700;">R{{total_price}}</div>
                         </td>
                       </tr>
                     </table>
@@ -88,15 +88,7 @@ export const emailTemplateConfirmed = `<!DOCTYPE html>
           <!-- Footer -->
           <tr>
             <td align="center" style="background-color: #0f172a; padding: 32px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-              <p style="font-size: 14px; color: #64748b; margin: 0 0 16px 0; line-height: 1.6; text-align: center;">
-                &copy; 2026 Bastis Platinum Wash. All rights reserved.<br>
-                Providing premium showroom-quality care for your vehicle.
-              </p>
-              <div style="font-size: 12px; color: #475569; text-align: center;">
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Manage Booking</a> | 
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Our Services</a> | 
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Contact Us</a>
-              </div>
+              <a href="https://bpcw.co.za" target="_blank" style="font-size: 14px; color: #94a3b8; text-decoration: none; font-weight: 600; letter-spacing: 0.5px;">bpcw.co.za</a>
             </td>
           </tr>
         </table>
@@ -120,7 +112,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td align="center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <img src="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
+              <img src="https://bpcw.co.za/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
             </td>
           </tr>
           
@@ -175,7 +167,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
                       <tr>
                         <td style="padding-top: 16px;">
                           <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Total Price</div>
-                          <div style="font-size: 20px; color: #e2e8f0; font-weight: 700;">{{total_price}}</div>
+                          <div style="font-size: 20px; color: #e2e8f0; font-weight: 700;">R{{total_price}}</div>
                         </td>
                       </tr>
                     </table>
@@ -192,7 +184,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
                           <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                             <tr>
                               <td align="center" bgcolor="#10b981" style="border-radius: 8px;">
-                                <a href="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/success.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; border: 1px solid #10b981;">
+                                <a href="https://bpcw.co.za/success.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; border: 1px solid #10b981;">
                                   Confirm New Booking Time
                                 </a>
                               </td>
@@ -206,7 +198,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
                           <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                             <tr>
                               <td align="center" style="border-radius: 8px; border: 1px solid #ef4444;">
-                                <a href="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/rebook.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ef4444; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                                <a href="https://bpcw.co.za/rebook.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ef4444; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
                                   Propose Alternative Time
                                 </a>
                               </td>
@@ -232,15 +224,7 @@ export const emailTemplateAdminProposed = `<!DOCTYPE html>
           <!-- Footer -->
           <tr>
             <td align="center" style="background-color: #0f172a; padding: 32px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-              <p style="font-size: 14px; color: #64748b; margin: 0 0 16px 0; line-height: 1.6; text-align: center;">
-                &copy; 2026 Bastis Platinum Wash. All rights reserved.<br>
-                Providing premium showroom-quality care for your vehicle.
-              </p>
-              <div style="font-size: 12px; color: #475569; text-align: center;">
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Manage Booking</a> | 
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Our Services</a> | 
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Contact Us</a>
-              </div>
+              <a href="https://bpcw.co.za" target="_blank" style="font-size: 14px; color: #94a3b8; text-decoration: none; font-weight: 600; letter-spacing: 0.5px;">bpcw.co.za</a>
             </td>
           </tr>
         </table>
@@ -264,7 +248,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
           <!-- Header -->
           <tr>
             <td align="center" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
-              <img src="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
+              <img src="https://bpcw.co.za/assets/BPCW-mainlogo.png" alt="Bastis Platinum Wash Logo" style="max-width: 200px; height: auto;" />
             </td>
           </tr>
           
@@ -313,7 +297,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
                       <tr>
                         <td style="padding-top: 16px;">
                           <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 6px;">Refundable Amount / Value</div>
-                          <div style="font-size: 20px; color: #ef4444; font-weight: 700;">{{total_price}}</div>
+                          <div style="font-size: 20px; color: #ef4444; font-weight: 700;">R{{total_price}}</div>
                         </td>
                       </tr>
                     </table>
@@ -326,7 +310,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
                     <table border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                       <tr>
                         <td align="center" bgcolor="#1f2937" style="border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);">
-                          <a href="https://wgkrstudios-dev.github.io/BastisPlatinumWash-v4/booking.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
+                          <a href="https://bpcw.co.za/booking.html?booking_id={{booking_id}}" target="_blank" style="display: inline-block; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px;">
                             Book a New Wash
                           </a>
                         </td>
@@ -349,15 +333,7 @@ export const emailTemplateCancelled = `<!DOCTYPE html>
           <!-- Footer -->
           <tr>
             <td align="center" style="background-color: #0f172a; padding: 32px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-              <p style="font-size: 14px; color: #64748b; margin: 0 0 16px 0; line-height: 1.6; text-align: center;">
-                &copy; 2026 Bastis Platinum Wash. All rights reserved.<br>
-                Providing premium showroom-quality care for your vehicle.
-              </p>
-              <div style="font-size: 12px; color: #475569; text-align: center;">
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Manage Booking</a> | 
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Our Services</a> | 
-                <a href="#" style="color: #94a3b8; text-decoration: none; margin: 0 8px;">Contact Us</a>
-              </div>
+              <a href="https://bpcw.co.za" target="_blank" style="font-size: 14px; color: #94a3b8; text-decoration: none; font-weight: 600; letter-spacing: 0.5px;">bpcw.co.za</a>
             </td>
           </tr>
         </table>
