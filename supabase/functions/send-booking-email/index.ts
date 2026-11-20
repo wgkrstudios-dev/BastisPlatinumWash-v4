@@ -119,7 +119,10 @@ Deno.serve(async (req) => {
     }
 
     const emailEnvelope = {
-      from: Deno.env.get('GMAIL_USER') || "",
+      from: {
+        name: "Basti's Platinum Wash",
+        address: Deno.env.get('GMAIL_USER') || "",
+      },
       to: record.customer_email,
       subject: subject,
       text: "Bastis Platinum Wash booking details update.",

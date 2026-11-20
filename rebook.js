@@ -126,7 +126,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             rebookForm.style.display = 'block';
         }
     } catch (err) {
-        Sentry.captureException(err);
+        if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+            window.Sentry.captureException(err);
+        }
         // Fail silently to protect database architecture schema from malicious probing
         const errorContainer = document.getElementById('error-container');
         if (errorContainer) {
@@ -243,7 +245,9 @@ document.getElementById('rebook-date')?.addEventListener('change', async (event)
             });
         }
     } catch (err) {
-        Sentry.captureException(err);
+        if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+            window.Sentry.captureException(err);
+        }
         console.error("Availability check failed:", err);
     }
 });
@@ -309,7 +313,9 @@ document.getElementById('rebook-form')?.addEventListener('submit', async (e) => 
             submitBtn.style.cursor = 'not-allowed';
         }
     } catch (err) {
-        Sentry.captureException(err);
+        if (window.Sentry && typeof window.Sentry.captureException === 'function') {
+            window.Sentry.captureException(err);
+        }
         console.error("Update failed:", err);
         showValidationFeedback("Network error: Could not complete transaction. Please check your connection and try again.", "error");
         if (submitBtn) submitBtn.disabled = false;
