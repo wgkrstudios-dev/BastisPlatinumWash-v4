@@ -1,4 +1,3 @@
-import nodemailer from "npm:nodemailer";
 import {
   emailTemplateConfirmed,
   emailTemplateAdminProposed,
@@ -92,16 +91,6 @@ Deno.serve(async (req) => {
       .replaceAll('{{total_price}}', String(record.total_price || '0.00'))
       .replaceAll('{{booking_id}}', record.id || '');
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: Deno.env.get('GMAIL_USER') || "",
-        pass: Deno.env.get('GMAIL_PASSWORD') || "",
-      },
-    });
-
     let subject = "";
     switch (record.booking_status) {
       case 'confirmed':
@@ -118,25 +107,67 @@ Deno.serve(async (req) => {
         break;
     }
 
-    const emailEnvelope = {
-      from: {
-        name: "Basti's Platinum Wash",
-        address: Deno.env.get('GMAIL_USER') || "",
-      },
-      to: record.customer_email,
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("Missing required secret: RESEND_API_KEY");
+    }
+
+    const replyToEmail = Deno.env.get("GMAIL_USER");
+
+    const textBody = [
+      subject,
+      "",
+      `Hi ${record.customer_name || ""},`,
+      "",
+      `Booking Status: ${record.booking_status}`,
+      `Appointment Date & Time: ${formattedDateTime || ""}`,
+      `Vehicle Type: ${record.vehicle_type || ""}`,
+      `Total Price: R${String(record.total_price || '0.00')}`,
+      "",
+      "Visit us at: https://bpcw.co.za",
+    ].join("\n");
+
+    const resendPayload: Record<string, unknown> = {
+      from: "Basti's Platinum Wash <bookings@bpcw.co.za>",
+      to: [record.customer_email],
       subject: subject,
-      text: "Bastis Platinum Wash booking details update.",
       html: htmlBody,
+      text: textBody,
     };
 
+    if (replyToEmail && replyToEmail.trim() !== "") {
+      resendPayload.reply_to = replyToEmail.trim();
+    }
+
     try {
-      await transporter.sendMail(emailEnvelope);
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(resendPayload),
+      });
+
+      if (!response.ok) {
+        const rawBody = await response.text();
+        let errorDetails = rawBody;
+        try {
+          const parsedError = JSON.parse(rawBody);
+          errorDetails = parsedError?.message || JSON.stringify(parsedError);
+        } catch {
+          // Keep raw text fallback when response body is not valid JSON
+        }
+        console.error("Resend API error response:", { status: response.status, body: errorDetails });
+        throw new Error(`Resend API dispatch failed (${response.status}): ${errorDetails}`);
+      }
+
       return new Response(
         JSON.stringify({ message: "Email dispatched successfully" }),
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     } catch (sendErr) {
-      console.error(sendErr);
+      console.error("Email dispatch failed:", sendErr);
       return new Response(
         JSON.stringify({ error: sendErr instanceof Error ? sendErr.message : String(sendErr) }),
         { status: 500, headers: { "Content-Type": "application/json" } }
